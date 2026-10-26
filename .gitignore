@@ -1,0 +1,38 @@
+# ---- 依赖 ----
+# 说明：node_modules 不入库；但 src/vendor/ 下的本地化第三方库（Leaflet）
+#       属于交付内容的一部分，需要提交，因此下面的规则显式放行。
+node_modules/
+vendor/
+!src/vendor/
+!src/vendor/**
+
+# ---- 环境变量（含密钥，绝不入库） ----
+.env
+.env.local
+.env.*.local
+src/js/env.generated.js
+
+# ---- 日志 ----
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# ---- 构建产物 / 临时文件 ----
+dist/
+build/
+.cache/
+tmp/
+*.tmp
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 交付物（本地生成，不入源码库） ----
+*.mp4
+*.pdf
+交付材料/

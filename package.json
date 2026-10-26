@@ -1,0 +1,35 @@
+{
+  "name": "minyun-ich-assistant",
+  "version": "1.0.0",
+  "private": true,
+  "description": "闽韵智小铺 · 福建非遗智能科普助手 —— 基于 RAG 知识库的福建非物质文化遗产科普与文旅路线规划 Web 应用",
+  "keywords": [
+    "非物质文化遗产",
+    "福建非遗",
+    "RAG",
+    "知识图谱",
+    "Leaflet",
+    "路线规划",
+    "AI创新运用"
+  ],
+  "author": {
+    "name": "Project Contributors"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "env": "node scripts/generate-env.js",
+    "start": "npx --yes http-server . -p 8080 -c-1 -o",
+    "dev": "npx --yes http-server . -p 8080 -c-1",
+    "lint": "npx --yes eslint \"src/js/**/*.js\"",
+    "build:env": "node scripts/generate-env.js"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "http-server": "^14.1.1"
+  },
+  "dependencies": {}
+}

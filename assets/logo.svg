@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="闽韵智小铺 Logo">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8B2E2E"/>
+      <stop offset="100%" stop-color="#B33A3A"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#g)"/>
+  <path d="M20 20h24v6H20z" fill="#C9A227"/>
+  <text x="32" y="45" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="26"
+        font-weight="700" fill="#FFFFFF" text-anchor="middle">闽</text>
+</svg>
