@@ -1,0 +1,51 @@
+/* ============================================================================
+ * map.css —— 右侧地图区：Leaflet 容器、悬浮工具条、自定义标记、信息弹窗
+ * ==========================================================================*/
+
+.panel-right { flex: 1; min-width: 0; position: relative; background: #EFE9DF; }
+#map { position: absolute; inset: 0; z-index: 1; }
+
+/* -------- 地图悬浮工具条（预设路线） -------- */
+.map-tools {
+  position: absolute; top: 16px; left: 16px; right: 16px; z-index: 1000;
+  display: flex; gap: 8px; flex-wrap: wrap; pointer-events: none;
+}
+.map-tools > * { pointer-events: auto; }
+.map-tools .t {
+  background: var(--paper); border-radius: 10px; padding: 8px 14px; font-size: 12px;
+  font-weight: 600; cursor: pointer; box-shadow: var(--shadow); border: none;
+  font-family: inherit; white-space: nowrap; transition: all 0.2s;
+}
+.map-tools .t.active { background: var(--red); color: #fff; }
+
+/* -------- 自定义标记 -------- */
+.custom-marker { background: none !important; border: none !important; }
+.marker-photo {
+  width: 44px; height: 44px; border-radius: 50%; border: 3px solid #fff; overflow: hidden;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3); background: #F0EAE0; cursor: pointer; transition: transform 0.2s;
+}
+.marker-photo:hover { transform: scale(1.1); }
+.marker-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.marker-inner {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--c); border: 3px solid #fff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25); display: grid; place-items: center;
+  font-size: 14px; cursor: pointer;
+}
+
+/* -------- Leaflet 信息弹窗 -------- */
+.leaflet-popup-content-wrapper { border-radius: 14px; padding: 0; overflow: hidden; }
+.leaflet-popup-content { margin: 0; width: 320px !important; min-width: 320px !important; }
+.map-popup .popup-img { height: 150px; overflow: hidden; background: #F0EAE0; }
+.map-popup .popup-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.map-popup .popup-body { padding: 14px 16px; }
+.map-popup .popup-body h3 { font-size: 16px; margin: 0 0 8px; }
+.map-popup .popup-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+.map-popup .popup-badges span { font-size: 10px; padding: 2px 8px; border-radius: 8px; background: #F0EAE0; color: #6B5F52; }
+.map-popup .popup-body p { font-size: 12.5px; line-height: 1.6; color: #5C534A; margin: 0 0 12px; }
+.map-popup .popup-actions { display: flex; gap: 8px; }
+.map-popup .popup-actions button {
+  flex: 1; padding: 8px; border-radius: 8px; border: none; font-size: 12px;
+  font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.map-popup .popup-actions button:first-child { background: #8B2E2E; color: #fff; }
+.map-popup .popup-actions button:last-child { background: #F5EFE6; color: #2C2A28; }
