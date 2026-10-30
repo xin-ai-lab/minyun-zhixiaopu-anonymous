@@ -17,6 +17,15 @@
 
 ---
 
+## 📌 在线演示
+
+**演示地址**：<https://minyun-zhixiaopu.app.workbuddy.host/?sharecode=FYLKW3SSZX>
+
+- 评审期内保持可访问，**无需注册、无需登录**，打开即可体验全部功能；
+- 亦可在本地直接双击 `index.html` 离线运行（零构建、零依赖后端）。
+
+---
+
 ## 一、项目介绍
 
 ### 1.1 一句话简介
