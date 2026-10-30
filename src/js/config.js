@@ -24,7 +24,7 @@ window.MYX = window.MYX || {};
     /* ---- 应用元信息 ---- */
     APP_NAME: ENV.APP_NAME || '闽韵智小铺',
     APP_SUBTITLE: ENV.APP_SUBTITLE || '福建非遗智能科普助手',
-    VERSION: '1.0.0',
+    VERSION: '1.1.0',
 
     /* ---- 团队信息（用于 README / 关于页展示） ---- */
     TEAM: {
@@ -64,10 +64,19 @@ window.MYX = window.MYX || {};
       QUALITY: 0.85
     },
 
-    /* ---- LocalStorage 键名（带版本号，便于数据结构升级） ---- */
+    /* ---- 本地持久化键名（带版本号，便于数据结构升级） ---- */
     STORAGE_KEYS: {
-      IMAGES: 'fj_imgs_v4',
+      /** 旧版：用户上传图（LocalStorage，Base64，受 5MB 配额限制，仅用于一次性迁移） */
+      IMAGES_LEGACY: 'fj_imgs_v4',
+      /** 在线图库缓存（仅存 URL，体积极小，继续沿用 LocalStorage） */
       WIKI: 'fj_wiki_v4'
+    },
+
+    /* ---- IndexedDB：用户上传照片持久化（配额按磁盘容量计，可容纳数百张） ---- */
+    IDB: {
+      DB_NAME: 'myx_uploads_db',
+      DB_VERSION: 1,
+      STORE: 'photos'
     },
 
     /* ---- RAG 检索增强问答超参 ---- */

@@ -83,7 +83,7 @@ window.MYX = window.MYX || {};
     var imgWrap = d.querySelector('.img-wrap');
     var cached = MYX.Store.getImage(site.id);
     if (cached) {
-      imgWrap.innerHTML = '<img src="' + cached + '" alt="' + site.name + '">';
+      imgWrap.innerHTML = imgWrapHTML(site.id, site.name, cached);
     } else {
       MYX.Store.fetchWikiImage(site).then(function (url) {
         imgWrap.innerHTML = url
@@ -234,21 +234,46 @@ window.MYX = window.MYX || {};
     el('fileInput').click();
   }
 
+  /**
+   * 生成卡片图片区 HTML。
+   * 用户自己上传的照片会带一枚「我的照片」角标，与内置实景图库区分开，
+   * 同时也用于验证「刷新后仍持久保留」。
+   */
+  function imgWrapHTML(id, name, url) {
+    var isUser = MYX.Store.isUserImage && MYX.Store.isUserImage(id);
+    return '<img src="' + url + '" alt="' + (name || '') + '">' +
+      (isUser ? '<span class="user-badge">我的照片</span>' : '');
+  }
+
+  /** 同步刷新页面内所有该项目的卡片图片 */
+  function refreshCards(id, dataUrl) {
+    var site = SITES.find(function (x) { return x.id === id; });
+    var html = imgWrapHTML(id, site ? site.name : '', dataUrl);
+    document.querySelectorAll('.card[data-id="' + id + '"] .img-wrap').forEach(function (wrap) {
+      wrap.innerHTML = html;
+    });
+  }
+
+  /** 应用一张新图片到所有相关视图（标记 / 卡片 / 详情） */
+  function applyImage(id, dataUrl) {
+    MYX.MapModule.refreshMarker(id);
+    refreshCards(id, dataUrl);
+    if (el('detailModal').classList.contains('show') && currentDetailId === id) {
+      var site = SITES.find(function (x) { return x.id === id; });
+      if (site) updateDetailImage(dataUrl, CATS[site.cat]);
+    }
+  }
+
   function initUploaders() {
     var fileInput = el('fileInput');
     fileInput.addEventListener('change', function (e) {
       var f = e.target.files[0];
       if (!f || !uploadTargetId) return;
+      var id = uploadTargetId;
       MYX.ImageUtil.readAndResize(f).then(function (dataUrl) {
-        var id = uploadTargetId;
-        MYX.Store.saveUserImage(id, dataUrl);
-        MYX.MapModule.refreshMarker(id);
-        if (el('detailModal').classList.contains('show') && currentDetailId === id) {
-          var site = SITES.find(function (x) { return x.id === id; });
-          updateDetailImage(dataUrl, CATS[site.cat]);
-        }
-        document.querySelectorAll('.card[data-id="' + id + '"] .img-wrap').forEach(function (wrap) {
-          wrap.innerHTML = '<img src="' + dataUrl + '" alt="">';
+        return MYX.Store.saveUserImage(id, dataUrl).then(function (okSaved) {
+          applyImage(id, dataUrl);
+          if (!okSaved) alert('照片已在本页生效，但持久化失败：浏览器可能禁用了本地存储。');
         });
       });
       fileInput.value = '';
@@ -262,32 +287,47 @@ window.MYX = window.MYX || {};
       // 进度浮层
       var prog = document.createElement('div');
       prog.className = 'batch-progress';
-      prog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:24px 32px;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.35);z-index:99999;font-size:14px;text-align:center;min-width:280px;';
-      prog.innerHTML = '<div style="font-weight:700;margin-bottom:8px;color:#8B2E2E">📁 正在批量处理…</div>' +
+      prog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:24px 32px;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.35);z-index:99999;font-size:14px;text-align:center;min-width:300px;';
+      prog.innerHTML = '<div style="font-weight:700;margin-bottom:10px;color:#8B2E2E">📁 正在批量处理…</div>' +
+        '<div style="height:8px;border-radius:4px;background:#F0E7DC;overflow:hidden;margin-bottom:10px">' +
+        '<div id="progBar" style="height:100%;width:0;background:linear-gradient(90deg,#8B2E2E,#C9A227);transition:width .15s"></div></div>' +
         '<div id="progText" style="font-size:12px;color:#6B5F52">0 / ' + files.length + '</div>';
       document.body.appendChild(prog);
 
-      var matched = 0, processed = 0, unmatched = [];
+      var matched = 0, failed = 0, processed = 0, unmatched = [];
+
       for (var i = 0; i < files.length; i++) {
         var file = files[i];
         var baseName = file.name.replace(/\.[^.]+$/, '').trim();
         var site = SITES.find(function (s) { return s.name === baseName; }) ||
-          SITES.find(function (s) { return baseName.includes(s.name) || s.name.includes(baseName); });
+          SITES.find(function (s) { return baseName.indexOf(s.name) >= 0 || s.name.indexOf(baseName) >= 0; });
+
         if (site) {
           try {
             var dataUrl = await MYX.ImageUtil.readAndResize(file);
-            MYX.Store.saveUserImage(site.id, dataUrl);
-            MYX.MapModule.refreshMarker(site.id);
-            matched++;
+            var okSaved = await MYX.Store.saveUserImage(site.id, dataUrl);
+            applyImage(site.id, dataUrl);
+            if (okSaved) matched++; else failed++;
           } catch (err) { unmatched.push(file.name); }
         } else { unmatched.push(file.name); }
+
         processed++;
-        var pt = el('progText');
+        var pt = el('progText'), pb = el('progBar');
         if (pt) pt.textContent = processed + ' / ' + files.length + '　（已匹配 ' + matched + ' 张）';
+        if (pb) pb.style.width = Math.round(processed * 100 / files.length) + '%';
+        // 让出主线程，保证进度浮层可见
+        await new Promise(function (r) { setTimeout(r, 0); });
       }
+
+      // 等待全部写入落盘
+      await MYX.Store.flush();
       prog.remove();
 
-      var msg = '批量上传完成！<br>✅ 成功匹配 <b>' + matched + '</b> / ' + files.length + ' 张';
+      var msg = '📁 <b>批量上传完成</b><br>✅ 成功匹配并保存 <b>' + matched + '</b> / ' + files.length + ' 张' +
+        '　（存储后端：' + (MYX.Store.isIdbReady() ? 'IndexedDB' : 'LocalStorage') + '）';
+      if (failed) {
+        msg += '<br>⚠️ 有 ' + failed + ' 张匹配成功但持久化失败，刷新后可能丢失';
+      }
       if (unmatched.length) {
         msg += '<br><br>⚠️ 未匹配 <b>' + unmatched.length + '</b> 张：<br>' +
           '<span style="font-size:11px;color:#8A7F73;line-height:1.6">' + unmatched.slice(0, 8).join('、') +

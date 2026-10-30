@@ -3,7 +3,7 @@
  *
  * 能力：
  *   · 初始化高德路网底图并自适应全省边界；
- *   · 渲染 46 个非遗标记（优先实景照片，无图降级为类别 Emoji 图标）；
+ *   · 渲染 48 个非遗标记（优先实景照片，无图降级为类别 Emoji 图标）；
  *   · 按「地市 + 类别」双重条件实时筛选可见标记；
  *   · 支持 4 条预设主题路线与 1 条算法自定义路线绘制；
  *   · 标记点击弹出「非遗信息卡片」。
@@ -38,10 +38,12 @@ window.MYX = window.MYX || {};
   function buildMarker(site) {
     var c = CATS[site.cat];
     var img = MYX.Store.getImage(site.id);
+    var isUser = MYX.Store.isUserImage && MYX.Store.isUserImage(site.id);
     var icon = L.divIcon({
       className: 'custom-marker',
       html: img
-        ? '<div class="marker-photo"><img src="' + img + '" alt="' + site.name + '"></div>'
+        ? '<div class="marker-photo' + (isUser ? ' is-user' : '') + '" title="' +
+            site.name + (isUser ? '（我的照片）' : '') + '"><img src="' + img + '" alt="' + site.name + '"></div>'
         : '<div class="marker-inner" style="--c:' + c.color + '">' + c.emoji + '</div>',
       iconSize: img ? [44, 44] : [32, 32],
       iconAnchor: img ? [22, 22] : [16, 16]
@@ -215,11 +217,12 @@ window.MYX = window.MYX || {};
     }, 400);
     window.addEventListener('resize', function () { map.invalidateSize(); });
 
-    // 异步、限流地为可见标记补充在线实景图
+    // 内置图库已覆盖全部项目，正常情况下此处不会发起任何网络请求；
+    // 仅为「未来新增、尚未配图」的项目保留在线图库兜底。
     (async function () {
       for (var i = 0; i < SITES.length; i++) {
         var s = SITES[i];
-        if (MYX.Store.userImages[s.id] || MYX.Store.wikiCache[s.id]) continue;
+        if (MYX.Store.getImage(s.id)) continue;
         if (!isVisible(s)) continue;
         var url = await MYX.Store.fetchWikiImage(s);
         if (url) {

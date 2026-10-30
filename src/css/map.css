@@ -26,6 +26,8 @@
 }
 .marker-photo:hover { transform: scale(1.1); }
 .marker-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 用户自己上传的照片：金色描边，与内置实景图库区分 */
+.marker-photo.is-user { border-color: #C9A227; box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.35), 0 3px 12px rgba(0, 0, 0, 0.3); }
 .marker-inner {
   width: 32px; height: 32px; border-radius: 50%; background: var(--c); border: 3px solid #fff;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25); display: grid; place-items: center;
