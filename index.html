@@ -21,9 +21,11 @@
   <title>闽韵智小铺 · 福建非遗智能科普助手</title>
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
 
-  <!-- 第三方依赖：Leaflet 地图引擎（CDN） -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- 第三方依赖：Leaflet 1.9.4 地图引擎
+       已本地化（vendored）到 src/vendor/leaflet/，摆脱对 CDN 的运行时依赖，
+       既可离线运行，也避免了公共 CDN 抖动带来的可用性风险。 -->
+  <link rel="stylesheet" href="src/vendor/leaflet/leaflet.css" />
+  <script src="src/vendor/leaflet/leaflet.js"></script>
 
   <!-- 样式：按职责拆分为 4 个模块，便于维护 -->
   <link rel="stylesheet" href="src/css/base.css" />
