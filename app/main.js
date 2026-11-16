@@ -29,10 +29,10 @@
     if(page==='saved')renderSaved().catch(e=>toast(e.message));
   }
   function initMap(id) {
-    const map=L.map(id,{minZoom:5,maxZoom:14,attributionControl:true,scrollWheelZoom:false}).setView([26.1,118.5],7);
+    const map=L.map(id,{minZoom:5,maxZoom:14,attributionControl:true,scrollWheelZoom:false,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false}).setView([26.1,118.5],7);
     map.attributionControl.addAttribution('文化分布示意 · 边界数据 DataV · 非导航地图');
     L.geoJSON(state.boundary,{style:{color:'#a9bba0',weight:1,fillColor:'#d6e0cd',fillOpacity:.8}}).addTo(map);
-    const bounds=L.geoJSON(state.boundary).getBounds();map.fitBounds(bounds,{padding:[20,20]});return map;
+    const bounds=L.geoJSON(state.boundary).getBounds();map.fitBounds(bounds,{padding:[20,20],animate:false});return map;
   }
   function renderExplore() {
     const q=$('search').value.trim().toLowerCase(),city=$('cityFilter').value,cat=$('categoryFilter').value;
@@ -122,7 +122,7 @@
       const pts=p.stops.map(t=>{const s=site(t.siteId);return [s.lat,s.lng];});
       L.polyline(pts,{color:'#ae6547',weight:3,dashArray:'5 8'}).addTo(state.routeLayer);
       pts.forEach((pt,i)=>L.marker(pt,{icon:L.divIcon({className:'',html:'<span class="map-number">'+(i+1)+'</span>',iconSize:[26,26]})}).bindTooltip(p.stops[i].name).addTo(state.routeLayer));
-      state.routeMap.fitBounds(L.latLngBounds(pts),{padding:[35,35],maxZoom:10});
+      state.routeMap.fitBounds(L.latLngBounds(pts),{padding:[35,35],maxZoom:13,animate:false});
     });
   }
   function download(name,body,type) { const blob=new Blob([body],{type});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000); }
@@ -142,6 +142,9 @@
   }
   function restore(id) {
     const r=state.saved.find(x=>x.id===id);if(!r)return;const p=r.plan.params;
+    for(const [id,value,label] of [['duration',p.minutes,p.minutes+' 分钟'],['maxStops',p.maxStops,p.maxStops+' 站']]){
+      if(![...$(id).options].some(o=>o.value===String(value)))$(id).add(new Option(label,String(value)));
+    }
     $('planCity').value=p.city;$('travelMode').value=p.mode;$('duration').value=String(p.minutes);$('startTime').value=p.startTime;$('planCategory').value=p.category;$('maxStops').value=String(p.maxStops);state.selected=[...p.siteIds];syncChosen();showPage('plan');renderPlan(r.plan);window.scrollTo({top:0});
   }
   function info(kind) {

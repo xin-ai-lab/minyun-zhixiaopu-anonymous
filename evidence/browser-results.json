@@ -1,0 +1,176 @@
+{
+  "checks": [
+    {
+      "name": "offline catalog loads",
+      "pass": true
+    },
+    {
+      "name": "empty search state",
+      "pass": true
+    },
+    {
+      "name": "search filter",
+      "pass": true
+    },
+    {
+      "name": "detail source",
+      "pass": true
+    },
+    {
+      "name": "keyboard close dialog",
+      "pass": true
+    },
+    {
+      "name": "origin correction and citation",
+      "pass": true
+    },
+    {
+      "name": "unverified source refusal",
+      "pass": true
+    },
+    {
+      "name": "plan valid",
+      "pass": true
+    },
+    {
+      "name": "changed constraints invalidate result",
+      "pass": true
+    },
+    {
+      "name": "invalid overnight shows error",
+      "pass": true
+    },
+    {
+      "name": "HTML export includes limits",
+      "pass": true
+    },
+    {
+      "name": "saved after reload",
+      "pass": true
+    },
+    {
+      "name": "rename XSS escaped",
+      "pass": true
+    },
+    {
+      "name": "JSON round trip",
+      "pass": true
+    },
+    {
+      "name": "delete cancel",
+      "pass": true
+    },
+    {
+      "name": "delete confirm",
+      "pass": true
+    },
+    {
+      "name": "custom duration restored",
+      "pass": true
+    },
+    {
+      "name": "layout 320 explore",
+      "pass": true
+    },
+    {
+      "name": "layout 320 ask",
+      "pass": true
+    },
+    {
+      "name": "layout 320 plan",
+      "pass": true
+    },
+    {
+      "name": "layout 320 saved",
+      "pass": true
+    },
+    {
+      "name": "layout 390 explore",
+      "pass": true
+    },
+    {
+      "name": "layout 390 ask",
+      "pass": true
+    },
+    {
+      "name": "layout 390 plan",
+      "pass": true
+    },
+    {
+      "name": "layout 390 saved",
+      "pass": true
+    },
+    {
+      "name": "layout 768 explore",
+      "pass": true
+    },
+    {
+      "name": "layout 768 ask",
+      "pass": true
+    },
+    {
+      "name": "layout 768 plan",
+      "pass": true
+    },
+    {
+      "name": "layout 768 saved",
+      "pass": true
+    },
+    {
+      "name": "layout 1440 explore",
+      "pass": true
+    },
+    {
+      "name": "layout 1440 ask",
+      "pass": true
+    },
+    {
+      "name": "layout 1440 plan",
+      "pass": true
+    },
+    {
+      "name": "layout 1440 saved",
+      "pass": true
+    },
+    {
+      "name": "layout 1920 explore",
+      "pass": true
+    },
+    {
+      "name": "layout 1920 ask",
+      "pass": true
+    },
+    {
+      "name": "layout 1920 plan",
+      "pass": true
+    },
+    {
+      "name": "layout 1920 saved",
+      "pass": true
+    },
+    {
+      "name": "all images load",
+      "pass": true
+    },
+    {
+      "name": "no uncaught JS errors",
+      "pass": true
+    },
+    {
+      "name": "no external requests in core flow",
+      "pass": true
+    }
+  ],
+  "passed": 40,
+  "total": 40,
+  "javascriptErrors": [],
+  "externalRequests": [],
+  "browser": "Installed Google Chrome, headless; network restricted to localhost",
+  "viewports": [
+    320,
+    390,
+    768,
+    1440,
+    1920
+  ]
+}

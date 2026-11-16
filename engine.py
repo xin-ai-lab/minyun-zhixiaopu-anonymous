@@ -11,6 +11,16 @@ VERSION = CATALOG['version']
 DATA_HASH = hashlib.sha256((ROOT / 'data/catalog.json').read_bytes()).hexdigest()
 STOP = ('请问','请介绍','介绍一下','能不能','帮我','我想','了解','什么','哪些','怎么','哪里','一下','关于','以及','是否','可以','推荐','非遗')
 ALIASES = {'簪花': '簪花围 蟳埔女习俗', '蟳埔': '簪花围 蟳埔女习俗', '南管': '南音', '芗剧': '歌仔戏', '木偶': '提线木偶 布袋木偶', '非物质文化遗产': '非遗', '大红袍': '武夷岩茶', '脱胎漆器': '福州脱胎漆器髹饰技艺'}
+ENTITY_ALIASES = {
+ 'q01':'簪花,蟳埔', 'q02':'南音,南管,弦管', 'q03':'提线木偶,悬丝傀儡', 'q04':'高甲戏', 'q05':'惠安女',
+ 'q06':'德化,中国白', 'q07':'铁观音', 'q09':'送王船', 'q10':'福船,水密隔舱',
+ 'f01':'闽剧', 'f02':'寿山石', 'f03':'脱胎漆器', 'f05':'福州评话', 'f06':'茉莉花茶', 'f07':'佛跳墙',
+ 'x01':'漆线雕','x02':'博饼','x03':'珠绣','x04':'答嘴鼓','x05':'闽南童谣',
+ 'z01':'歌仔戏,芗剧','z02':'木偶头','z03':'闽南土楼','z04':'片仔癀','z05':'木版年画','z06':'八宝印泥',
+ 'p01':'妈祖','p02':'莆仙戏','p03':'莆田木雕','p04':'仙游,古典家具','s01':'梅林戏','s02':'沙县小吃','s03':'大腔戏',
+ 'n01':'岩茶,大红袍','n02':'建盏,建窑','n03':'四平戏','n04':'浦城剪纸','l01':'闽西汉剧','l02':'客家土楼',
+ 'l03':'四堡,雕版印刷','l04':'客家元宵','d01':'小说歌','d02':'福鼎白茶','d03':'霍童,线狮','d04':'柘荣剪纸',
+ 't01':'平潭贝雕','t02':'藤牌操','t03':'词明戏'}
 
 def normalize(text):
     return re.sub(r'[^\w\u4e00-\u9fff]', '', str(text).lower())
@@ -42,11 +52,12 @@ def search(query, city='全部', category='all', limit=6):
     qt=set(tokens(expanded))
     if not qt: qt=set(tokens(raw))
     named=[s['id'] for s in SITES if normalize(s['name']) in raw or normalize(s['officialName']) in raw
-           or any(normalize(t) in raw for t in s['tags'] if len(t)>=2)]
+           or any(t in raw for t in ENTITY_ALIASES.get(s['id'],'').split(',') if t)]
     detected=[c for c in CATALOG['cities'][1:] if c in raw]
     scored=[]
     for d in DOCS:
         s=BY_ID[d['siteId']]
+        if named and s['id'] not in named:continue
         if city!='全部' and s['city']!=city:continue
         if category!='all' and s['cat']!=category:continue
         if detected and not named and s['city'] not in detected:continue
@@ -72,6 +83,7 @@ def search(query, city='全部', category='all', limit=6):
     return result
 
 def answer(query,city='全部',category='all'):
+    if not isinstance(query,str): raise ValueError('问题必须是文字。')
     query=query.strip()
     if not query: raise ValueError('请输入你想了解的问题。')
     hits=search(query,city,category,4)

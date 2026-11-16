@@ -1,6 +1,7 @@
 """Local first app server. No pip dependencies. Run: python server.py --no-browser."""
-import argparse, http.server, json, os, secrets, sqlite3, threading, time, urllib.parse, urllib.request, uuid, webbrowser
+import argparse, http.server, json, os, secrets, sqlite3, sys, threading, time, urllib.parse, urllib.request, uuid, webbrowser
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from engine import CATALOG, DATA_HASH, VERSION, answer, plan
 
 ROOT=Path(__file__).resolve().parent
