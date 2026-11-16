@@ -36,3 +36,7 @@ desktop.ini
 *.mp4
 *.pdf
 交付材料/
+__pycache__/
+*.pyc
+var/
+tests/artifacts/

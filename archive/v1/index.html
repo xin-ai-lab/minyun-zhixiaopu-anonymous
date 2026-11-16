@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!--
+================================================================================
+ 项目名称：闽乡非遗智能科普助手（产品名：闽韵智小铺）
+ 赛事：AI 创新运用赛道（个人赛道）
+ 作者：[身份信息已隐去]　[身份信息已隐去]　学号 [身份信息已隐去]　参赛编号 [身份信息已隐去]
+ 技术栈：HTML5 + CSS3 + JavaScript (ES6) + Leaflet 1.9.4 + 原生 SVG + 贪心算法
+ 说明：本项目基于 Vibe Coding（氛围编程）模式开发。
+       参赛选手负责全局架构设计、Prompt 意图控制、模块解耦、Bug 修复与边界约束；
+       核心算法（贪心路线规划、SVG 知识图谱渲染）与内容语料由 AI 辅助生成。
+       完整 Prompt 历史快照见仓库 prompts/ 目录。
+================================================================================
+-->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="闽韵智小铺 · 福建非遗智能科普助手，基于 RAG 知识库的福建 48 项代表性非物质文化遗产科普与文旅路线规划应用。" />
+  <meta name="author" content="[身份信息已隐去]" />
+  <meta name="keywords" content="福建非遗,非物质文化遗产,闽台,知识图谱,路线规划" />
+  <title>闽韵智小铺 · 福建非遗智能科普助手</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
+
+  <!-- 第三方依赖：Leaflet 1.9.4 地图引擎
+       已本地化（vendored）到 src/vendor/leaflet/，摆脱对 CDN 的运行时依赖，
+       既可离线运行，也避免了公共 CDN 抖动带来的可用性风险。 -->
+  <link rel="stylesheet" href="src/vendor/leaflet/leaflet.css" />
+  <script src="src/vendor/leaflet/leaflet.js"></script>
+
+  <!-- 样式：按职责拆分为 4 个模块，便于维护 -->
+  <link rel="stylesheet" href="src/css/base.css" />
+  <link rel="stylesheet" href="src/css/chat.css" />
+  <link rel="stylesheet" href="src/css/map.css" />
+  <link rel="stylesheet" href="src/css/modal.css" />
+</head>
+<body>
+
+<div class="app">
+  <!-- ======================== 左侧：AI 交互区 ======================== -->
+  <div class="panel-left">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">闽</div>
+        <div>
+          <h1>闽韵智小铺</h1>
+          <div class="sub">福建非遗智能科普助手 · 48 项精选</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="batch" data-action="batch-upload">📁 批量上传</button>
+        <button data-action="open-graph">🕸️ 图谱</button>
+        <button data-action="open-cross">🌊 两岸</button>
+      </div>
+    </header>
+
+    <!-- 地市筛选标签（由 JS 动态渲染） -->
+    <nav class="city-tabs" id="cityTabs" aria-label="地市筛选"></nav>
+    <!-- 类别筛选标签（由 JS 动态渲染） -->
+    <div class="filters" id="filters" aria-label="类别筛选"></div>
+
+    <!-- 对话消息流 -->
+    <main class="msgs" id="msgs">
+      <div class="msg bot">
+        你好，我是 <b>阿闽</b> 🏮 福建非遗智能科普助手。<br /><br />
+        我基于 <b>RAG 知识库</b> 收录了福建全省 48 项代表性非遗，覆盖 10 个地区。<br /><br />
+        你可以直接提问，或点击下方按钮体验 <b>「一键智能规划半日游」</b> 功能。
+      </div>
+    </main>
+
+    <!-- 快捷提问 / 智能规划入口 -->
+    <div class="quick" id="quick">
+      <button class="quick-primary" data-action="smart-plan">🪄 智能规划半日游</button>
+      <button data-ask="簪花围在哪里体验？">簪花围在哪里体验？</button>
+      <button data-ask="打开知识图谱">打开知识图谱</button>
+      <button data-ask="两岸非遗对照">两岸非遗对照</button>
+    </div>
+
+    <!-- 输入区 -->
+    <form class="composer" id="composer" autocomplete="off">
+      <input id="input" placeholder="问问阿闽：簪花围在哪里体验？" aria-label="输入你的问题" />
+      <button type="submit" aria-label="发送">➤</button>
+    </form>
+  </div>
+
+  <!-- ======================== 右侧：地图区 ======================== -->
+  <div class="panel-right">
+    <div id="map" role="application" aria-label="福建非遗分布地图"></div>
+    <div class="map-tools">
+      <button class="t" data-route="minnan">闽南线</button>
+      <button class="t" data-route="fuzhou">福州线</button>
+      <button class="t" data-route="hakka">客家线</button>
+      <button class="t" data-route="quansheng">全省线</button>
+      <button class="t" data-route="clear">清除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== 详情弹窗 ======================== -->
+<div class="detail-modal" id="detailModal">
+  <div class="detail-box">
+    <div class="hero">
+      <div class="placeholder" id="dPlaceholder">🖼️</div>
+      <img id="dImg" src="" alt="" style="display:none" />
+      <div class="overlay"></div>
+      <div class="title">
+        <h2 id="dName"></h2>
+        <div class="badges" id="dBadges"></div>
+      </div>
+      <button class="upload-btn" id="dUploadBtn">📷 上传照片</button>
+      <button class="close" id="dClose">✕</button>
+    </div>
+    <div class="content" id="dContent"></div>
+  </div>
+</div>
+
+<!-- ======================== 知识图谱弹窗 ======================== -->
+<div class="modal" id="graphModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div style="flex:1">
+        <h3 id="graphTitle">福建非遗知识图谱</h3>
+        <div class="sub" id="graphSub"></div>
+      </div>
+      <button class="close" id="graphClose">✕</button>
+    </div>
+    <div class="modal-body"><div class="graph-wrap" id="graphWrap"></div></div>
+  </div>
+</div>
+
+<!-- ======================== 两岸对照弹窗 ======================== -->
+<div class="modal" id="crossModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div style="flex:1">
+        <h3>闽台非遗同源对照</h3>
+        <div class="sub">海峡两岸共同孕育的文化血脉</div>
+      </div>
+      <button class="close" id="crossClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="cross-tabs" id="crossTabs"></div>
+      <div id="crossContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 隐藏的文件选择器 -->
+<input type="file" id="fileInput" accept="image/*" style="display:none" />
+<input type="file" id="batchInput" accept="image/*" multiple style="display:none" />
+
+<script>
+  /* 环境变量占位：优先读取构建脚本注入的 window.__MYX_ENV__，缺失时回退到安全默认值。
+     这样可以把地图瓦片地址、AI 接口密钥等敏感/可变信息从源码中剥离，
+     敏感信息一律通过 .env -> scripts/generate-env.js 注入，绝不提交到仓库。 */
+  window.__MYX_ENV__ = window.__MYX_ENV__ || {};
+</script>
+<!-- 可选：由 npm run env 依据 .env 生成，包含时自动加载 -->
+<script src="src/js/env.generated.js" onerror="window.__MYX_ENV_MISSING__=true"></script>
+
+<!-- 应用脚本：按依赖顺序加载，全部挂载到全局命名空间 window.MYX -->
+<script src="src/js/config.js"></script>
+<script src="src/js/data/sites.js"></script>
+<script src="src/js/data/cross.js"></script>
+<script src="src/js/data/gallery.js"></script>
+<script src="src/js/modules/storage.js"></script>
+<script src="src/js/modules/image.js"></script>
+<script src="src/js/modules/rag.js"></script>
+<script src="src/js/modules/planner.js"></script>
+<script src="src/js/modules/map.js"></script>
+<script src="src/js/modules/graph.js"></script>
+<script src="src/js/modules/cross.js"></script>
+<script src="src/js/modules/ui.js"></script>
+<script src="src/js/main.js"></script>
+</body>
+</html>

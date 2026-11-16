@@ -1,175 +1,34 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<!--
-================================================================================
- 项目名称：闽乡非遗智能科普助手（产品名：闽韵智小铺）
- 赛事：AI 创新运用赛道（个人赛道）
- 作者：[身份信息已隐去]　[身份信息已隐去]　学号 [身份信息已隐去]　参赛编号 [身份信息已隐去]
- 技术栈：HTML5 + CSS3 + JavaScript (ES6) + Leaflet 1.9.4 + 原生 SVG + 贪心算法
- 说明：本项目基于 Vibe Coding（氛围编程）模式开发。
-       参赛选手负责全局架构设计、Prompt 意图控制、模块解耦、Bug 修复与边界约束；
-       核心算法（贪心路线规划、SVG 知识图谱渲染）与内容语料由 AI 辅助生成。
-       完整 Prompt 历史快照见仓库 prompts/ 目录。
-================================================================================
--->
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="闽韵智小铺 · 福建非遗智能科普助手，基于 RAG 知识库的福建 48 项代表性非物质文化遗产科普与文旅路线规划应用。" />
-  <meta name="author" content="[身份信息已隐去]" />
-  <meta name="keywords" content="福建非遗,非物质文化遗产,闽台,知识图谱,路线规划" />
-  <title>闽韵智小铺 · 福建非遗智能科普助手</title>
-  <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
-
-  <!-- 第三方依赖：Leaflet 1.9.4 地图引擎
-       已本地化（vendored）到 src/vendor/leaflet/，摆脱对 CDN 的运行时依赖，
-       既可离线运行，也避免了公共 CDN 抖动带来的可用性风险。 -->
-  <link rel="stylesheet" href="src/vendor/leaflet/leaflet.css" />
-  <script src="src/vendor/leaflet/leaflet.js"></script>
-
-  <!-- 样式：按职责拆分为 4 个模块，便于维护 -->
-  <link rel="stylesheet" href="src/css/base.css" />
-  <link rel="stylesheet" href="src/css/chat.css" />
-  <link rel="stylesheet" href="src/css/map.css" />
-  <link rel="stylesheet" href="src/css/modal.css" />
-</head>
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>闽韵智小铺 · 有据可循，有路可行</title><link rel="icon" href="assets/logo.svg"><link rel="stylesheet" href="src/vendor/leaflet/leaflet.css"><link rel="stylesheet" href="app/style.css"></head>
 <body>
-
-<div class="app">
-  <!-- ======================== 左侧：AI 交互区 ======================== -->
-  <div class="panel-left">
-    <header class="topbar">
-      <div class="brand">
-        <div class="logo">闽</div>
-        <div>
-          <h1>闽韵智小铺</h1>
-          <div class="sub">福建非遗智能科普助手 · 48 项精选</div>
-        </div>
-      </div>
-      <div class="top-actions">
-        <button class="batch" data-action="batch-upload">📁 批量上传</button>
-        <button data-action="open-graph">🕸️ 图谱</button>
-        <button data-action="open-cross">🌊 两岸</button>
-      </div>
-    </header>
-
-    <!-- 地市筛选标签（由 JS 动态渲染） -->
-    <nav class="city-tabs" id="cityTabs" aria-label="地市筛选"></nav>
-    <!-- 类别筛选标签（由 JS 动态渲染） -->
-    <div class="filters" id="filters" aria-label="类别筛选"></div>
-
-    <!-- 对话消息流 -->
-    <main class="msgs" id="msgs">
-      <div class="msg bot">
-        你好，我是 <b>阿闽</b> 🏮 福建非遗智能科普助手。<br /><br />
-        我基于 <b>RAG 知识库</b> 收录了福建全省 48 项代表性非遗，覆盖 10 个地区。<br /><br />
-        你可以直接提问，或点击下方按钮体验 <b>「一键智能规划半日游」</b> 功能。
-      </div>
-    </main>
-
-    <!-- 快捷提问 / 智能规划入口 -->
-    <div class="quick" id="quick">
-      <button class="quick-primary" data-action="smart-plan">🪄 智能规划半日游</button>
-      <button data-ask="簪花围在哪里体验？">簪花围在哪里体验？</button>
-      <button data-ask="打开知识图谱">打开知识图谱</button>
-      <button data-ask="两岸非遗对照">两岸非遗对照</button>
-    </div>
-
-    <!-- 输入区 -->
-    <form class="composer" id="composer" autocomplete="off">
-      <input id="input" placeholder="问问阿闽：簪花围在哪里体验？" aria-label="输入你的问题" />
-      <button type="submit" aria-label="发送">➤</button>
-    </form>
-  </div>
-
-  <!-- ======================== 右侧：地图区 ======================== -->
-  <div class="panel-right">
-    <div id="map" role="application" aria-label="福建非遗分布地图"></div>
-    <div class="map-tools">
-      <button class="t" data-route="minnan">闽南线</button>
-      <button class="t" data-route="fuzhou">福州线</button>
-      <button class="t" data-route="hakka">客家线</button>
-      <button class="t" data-route="quansheng">全省线</button>
-      <button class="t" data-route="clear">清除</button>
-    </div>
-  </div>
-</div>
-
-<!-- ======================== 详情弹窗 ======================== -->
-<div class="detail-modal" id="detailModal">
-  <div class="detail-box">
-    <div class="hero">
-      <div class="placeholder" id="dPlaceholder">🖼️</div>
-      <img id="dImg" src="" alt="" style="display:none" />
-      <div class="overlay"></div>
-      <div class="title">
-        <h2 id="dName"></h2>
-        <div class="badges" id="dBadges"></div>
-      </div>
-      <button class="upload-btn" id="dUploadBtn">📷 上传照片</button>
-      <button class="close" id="dClose">✕</button>
-    </div>
-    <div class="content" id="dContent"></div>
-  </div>
-</div>
-
-<!-- ======================== 知识图谱弹窗 ======================== -->
-<div class="modal" id="graphModal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <div style="flex:1">
-        <h3 id="graphTitle">福建非遗知识图谱</h3>
-        <div class="sub" id="graphSub"></div>
-      </div>
-      <button class="close" id="graphClose">✕</button>
-    </div>
-    <div class="modal-body"><div class="graph-wrap" id="graphWrap"></div></div>
-  </div>
-</div>
-
-<!-- ======================== 两岸对照弹窗 ======================== -->
-<div class="modal" id="crossModal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <div style="flex:1">
-        <h3>闽台非遗同源对照</h3>
-        <div class="sub">海峡两岸共同孕育的文化血脉</div>
-      </div>
-      <button class="close" id="crossClose">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="cross-tabs" id="crossTabs"></div>
-      <div id="crossContent"></div>
-    </div>
-  </div>
-</div>
-
-<!-- 隐藏的文件选择器 -->
-<input type="file" id="fileInput" accept="image/*" style="display:none" />
-<input type="file" id="batchInput" accept="image/*" multiple style="display:none" />
-
-<script>
-  /* 环境变量占位：优先读取构建脚本注入的 window.__MYX_ENV__，缺失时回退到安全默认值。
-     这样可以把地图瓦片地址、AI 接口密钥等敏感/可变信息从源码中剥离，
-     敏感信息一律通过 .env -> scripts/generate-env.js 注入，绝不提交到仓库。 */
-  window.__MYX_ENV__ = window.__MYX_ENV__ || {};
-</script>
-<!-- 可选：由 npm run env 依据 .env 生成，包含时自动加载 -->
-<script src="src/js/env.generated.js" onerror="window.__MYX_ENV_MISSING__=true"></script>
-
-<!-- 应用脚本：按依赖顺序加载，全部挂载到全局命名空间 window.MYX -->
-<script src="src/js/config.js"></script>
-<script src="src/js/data/sites.js"></script>
-<script src="src/js/data/cross.js"></script>
-<script src="src/js/data/gallery.js"></script>
-<script src="src/js/modules/storage.js"></script>
-<script src="src/js/modules/image.js"></script>
-<script src="src/js/modules/rag.js"></script>
-<script src="src/js/modules/planner.js"></script>
-<script src="src/js/modules/map.js"></script>
-<script src="src/js/modules/graph.js"></script>
-<script src="src/js/modules/cross.js"></script>
-<script src="src/js/modules/ui.js"></script>
-<script src="src/js/main.js"></script>
-</body>
-</html>
+<a class="skip" href="#main">跳到主要内容</a>
+<div class="shell">
+ <aside class="sidebar"><a class="brand" href="#explore"><span class="seal">闽</span><span>闽韵智小铺<small>MINYUN · CULTURAL ATLAS</small></span></a>
+ <div class="nav-caption">一程山海，一脉传承</div>
+ <nav aria-label="主要导航"><button data-page="explore" class="nav-item active"><span>◈</span>发现非遗<small>01</small></button><button data-page="ask" class="nav-item"><span>⌕</span>有据问答<small>02</small></button><button data-page="plan" class="nav-item"><span>↗</span>策划一程<small>03</small></button><button data-page="saved" class="nav-item"><span>▤</span>我的行程<small>04</small></button></nav>
+ <div class="sidebar-foot"><span class="mini-seal">闽</span><p>让文化被理解<br>让探访有准备</p><button id="aboutBtn" class="text-button">关于作品与资料 →</button><small>闽韵智小铺<br>参赛演示版 2.0</small></div></aside>
+ <div class="workspace"><header class="topbar"><div><span class="breadcrumb">福建 /</span> <span id="pageLabel">发现非遗</span></div><div class="top-right"><span class="status" id="health">连接本地服务…</span><button class="plain" id="helpBtn">演示指南</button></div></header>
+ <main id="main">
+ <section id="page-explore" class="page">
+  <div class="page-heading"><div><span class="eyebrow">FUJIAN LIVING HERITAGE</span><h1>循着闽韵，走进生活。</h1><p>从一顶簪花、一曲南音开始，找到属于你的文化旅程。</p></div><button class="button primary" data-go="plan">策划我的半日行程 <span>↗</span></button></div>
+  <div class="hero"><div class="hero-text"><span class="hero-kicker">本期文化切片 · 泉州</span><h2>把花戴在头上，<br>把故事留在心里。</h2><p>簪花围是蟳埔女习俗的一部分。<br>先读懂它，再走近它。</p><button class="hero-link" data-detail="q01">读懂蟳埔女习俗 <span>↗</span></button></div><img src="assets/sites/q01.jpg" alt="原作品提供的蟳埔簪花围主题照片"><div class="hero-stamp">蟳<br>埔</div><span class="photo-label">图源：原作品图库</span></div>
+  <div class="atlas-layout"><div class="catalog-panel"><div class="section-heading"><div><span class="eyebrow">EXPLORE THE COLLECTION</span><h2>把福建，慢慢读。</h2></div><span id="resultCount" class="count"></span></div>
+   <form id="filterForm" class="filter-bar"><label class="search-field"><span>⌕</span><input id="search" type="search" aria-label="搜索非遗" placeholder="搜索项目、技艺或城市"></label><label><span class="sr-only">地区</span><select id="cityFilter"></select></label><label><span class="sr-only">类别</span><select id="categoryFilter"></select></label></form>
+   <div class="filter-note"><span class="verified-dot"></span><span id="verifiedCount"></span><button id="clearFilter" class="text-button">重置筛选</button></div><div id="siteGrid" class="site-grid"></div>
+  </div><aside class="map-panel"><div class="map-heading"><span>文化分布图</span><button id="resetMap" class="text-button">全省视角 ↗</button></div><div id="atlasMap" class="map" aria-label="福建非遗分布地图"></div><div class="map-legend"><span><i></i>已匹配名录</span><span>点击圆点查看项目</span></div><p class="map-disclaimer">离线文化分布示意。坐标为代表性区域参考点，请向场馆确认实际到访地址。</p><div class="map-footer"><strong id="mapProjects">45</strong><span>有出处的文化条目</span><span class="map-flower">✳</span></div></aside></div>
+ </section>
+ <section id="page-ask" class="page" hidden><div class="page-heading"><div><span class="eyebrow">EVIDENCE BEFORE ANSWERS</span><h1>每一段文化，都有来处。</h1><p>检索名录原文，展示引用依据；没有资料的事情，明确告诉你。</p></div><span class="tag">原文检索 · 可追溯</span></div>
+ <div class="ask-layout"><div class="chat-panel"><div class="chat-head"><span class="seal small">闽</span><div><strong>阿闽 · 非遗资料助手</strong><small id="answerMode">本地证据问答，无需网络</small></div><button class="plain" id="clearChat">新对话</button></div><div id="messages" class="messages" aria-live="polite"></div><div class="suggestions"><button data-ask="簪花围和蟳埔女习俗有什么关系？">簪花与蟳埔</button><button data-ask="歌仔戏起源在哪里？">歌仔戏的来路</button><button data-ask="泉州南音今天几点演出？">查不到时怎么办</button></div><form id="askForm" class="composer"><label class="sr-only" for="question">你的问题</label><textarea id="question" rows="2" maxlength="500" placeholder="例如：南音使用哪些乐器？"></textarea><button class="button primary" id="askSubmit" type="submit">查资料 ↗</button></form><div class="model-option"><label><input id="useModel" type="checkbox" disabled> 使用已配置的模型整理答案</label><span id="modelHint">默认返回原文摘录</span></div></div>
+ <aside class="evidence-panel"><span class="eyebrow">SOURCE NOTES</span><h2>依据就在旁边。</h2><p>回答后，可在这里逐条核对名录原文、申报地区和保护单位。</p><div id="evidenceList"><div class="empty-note"><span>“</span><p>不把“像真的”<br>当成“有依据”。</p></div></div></aside></div></section>
+ <section id="page-plan" class="page" hidden><div class="page-heading"><div><span class="eyebrow">A WELL-CONSIDERED JOURNEY</span><h1>留半天，给一座城。</h1><p>设定时间与出行方式，让每一次停留都安排得下。</p></div><span class="tag">时间约束规划</span></div><div class="plan-layout"><form id="planForm" class="plan-form"><h2>这次怎么走？</h2><label>出发城市<select id="planCity"></select></label><div class="form-row"><label>出发时间<input id="startTime" type="time" value="09:00" required></label><label>可用时长<select id="duration"><option value="120">2 小时</option><option value="180">3 小时</option><option value="240" selected>4 小时 · 半日</option><option value="360">6 小时</option><option value="480">8 小时 · 一日</option></select></label></div><label>交通方式<select id="travelMode"><option value="drive">乘车 · 估算 25 km/h</option><option value="walk">步行 · 估算 4.5 km/h</option><option value="bike">骑行 · 估算 12 km/h</option></select></label><div class="form-row"><label>想看什么<select id="planCategory"></select></label><label>最多停留<select id="maxStops"><option value="2">2 站</option><option value="3" selected>3 站</option><option value="4">4 站</option></select></label></div><div class="chosen-head"><span>我的候选项目</span><button type="button" class="text-button" id="clearChosen">清空</button></div><div id="chosenList" class="chosen-list"></div><button id="planSubmit" class="button primary" type="submit">生成可行行程 <span>↗</span></button><p class="form-note">参考城市中心出发。你可以从发现页加入候选项目；留空则由系统筛选。</p><div class="form-error" id="planError" role="alert"></div></form>
+ <div class="plan-result"><div id="planEmpty" class="plan-empty"><span>山海之间<br>有你的一程。</span><p>填好左侧的旅程条件，<br>看看哪些非遗体验能装进这半天。</p></div><div id="planOutput" hidden><div class="plan-summary" id="planSummary"></div><div class="plan-actions"><button id="savePlan" class="button primary">保存到我的行程</button><button id="exportPlan" class="button secondary">导出行程单</button><button id="downloadJson" class="plain">备份 JSON</button></div><div class="route-layout"><div id="timeline" class="timeline"></div><div><div id="routeMap" class="route-map" aria-label="行程示意地图"></div><p class="map-disclaimer">虚线为访问顺序示意，不是道路导航。</p></div></div><details class="assumptions"><summary>为什么这样安排？查看依据与估算边界</summary><div id="planMethod"></div></details></div></div></div></section>
+ <section id="page-saved" class="page" hidden><div class="page-heading"><div><span class="eyebrow">YOUR CULTURAL NOTEBOOK</span><h1>把想去的，留在这里。</h1><p>行程保存在本机，刷新后仍在。支持重命名、恢复与导出。</p></div><label class="button secondary import-label">导入行程备份<input type="file" id="importPlan" accept="application/json,.json" hidden></label></div><div id="savedGrid" class="saved-grid"></div></section>
+ <div class="global-error" id="globalError" hidden role="alert"></div>
+ </main><footer class="footer"><span>闽韵智小铺 · 有据可循，有路可行</span><span>文化资料核验：2026.11.16 · 地图仅作参考</span></footer></div></div>
+<dialog id="detailDialog"><div id="detailBody"></div><button class="dialog-close" aria-label="关闭详情">×</button></dialog>
+<dialog id="infoDialog"><div id="infoBody" class="info-body"></div><button class="dialog-close" aria-label="关闭窗口">×</button></dialog>
+<dialog id="editDialog"><form id="editForm" class="info-body"><span class="eyebrow">MY JOURNEY</span><h2>给这一程起个名字</h2><label>行程名称<input id="editTitle" maxlength="80" required></label><div class="dialog-actions"><button type="button" class="button secondary" id="cancelEdit">取消</button><button class="button primary">保存名称</button></div></form></dialog>
+<dialog id="deleteDialog"><div class="info-body"><h2>删除这份行程？</h2><p>只删除当前保存的这一份。已导出的备份仍可重新导入。</p><div class="dialog-actions"><button class="button secondary" id="cancelDelete">保留</button><button class="button primary" id="confirmDelete">确认删除</button></div></div></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="src/vendor/leaflet/leaflet.js"></script><script src="app/main.js"></script>
+</body></html>
