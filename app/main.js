@@ -106,7 +106,8 @@
   function planParams() { return {city:$('planCity').value,mode:$('travelMode').value,minutes:Number($('duration').value),startTime:$('startTime').value,category:$('planCategory').value,maxStops:Number($('maxStops').value),siteIds:[...state.selected]}; }
   async function generatePlan(e) {
     e?.preventDefault();$('planError').textContent='';$('planSubmit').disabled=true;
-    try { const p=await api('/api/plan','POST',planParams());renderPlan(p); }
+    const params=planParams();
+    try { const p=await api('/api/plan','POST',params);if(JSON.stringify(params)!==JSON.stringify(planParams())){toast('条件已改变，请按新条件重新生成');return;}renderPlan(p); }
     catch(err){invalidatePlan();$('planError').textContent=err.message;}
     finally{$('planSubmit').disabled=false;}
   }
@@ -148,7 +149,7 @@
     $('planCity').value=p.city;$('travelMode').value=p.mode;$('duration').value=String(p.minutes);$('startTime').value=p.startTime;$('planCategory').value=p.category;$('maxStops').value=String(p.maxStops);state.selected=[...p.siteIds];syncChosen();showPage('plan');renderPlan(r.plan);window.scrollTo({top:0});
   }
   function info(kind) {
-    $('infoBody').innerHTML=kind==='help'?`<span class="eyebrow">DEMONSTRATION GUIDE</span><h2>用一条旅程，讲清作品。</h2><ol><li>在“发现非遗”搜索“簪花”，打开详情，查看正式名录名称和来源。</li><li>在“有据问答”询问“歌仔戏起源在哪里？”，对照右侧原文；再问实时场次，展示信息边界。</li><li>到“策划一程”，选择泉州、4 小时、乘车，生成行程；切换步行或 2 小时，观察约束如何改变结果。</li><li>保存行程，刷新页面，再到“我的行程”恢复、重命名并导出。</li></ol><p>文化资料、图片、地图边界随包提供。本地服务运行时，以上核心流程不依赖外网。</p>`:`<span class="eyebrow">ABOUT MINYUN</span><h2>有据可循，有路可行。</h2><p>赛道：AI创新应用挑战赛 · 按用户提供的 Vibe Coding 规则准备<br>版本：2.0.0</p><h3>本版真实能力</h3><p>48 个文化条目，45 个已对上国家级名录；3 个待核验条目不参与问答与自动行程。默认问答为检索原文摘录；配置服务端模型后可选用模型整理。时间规划采用小规模穷举与估算交通模型。</p><h3>资料与使用边界</h3><p>国家级非遗名录内容来源：中国非物质文化遗产网。核验日期：2026-11-16。这里只核验文化事实与名录字段，未核验原图库照片授权、实际门店坐标、票价、营业时间和场次。</p><p>地图使用 Leaflet（BSD-2-Clause）及本地 DataV 行政边界；仅作文化分布示意。非遗图片沿用用户原仓库，授权凭据需由原素材提供者补齐。</p><p>个人行程只保存在本机。可选模型模式会把你的问题和检索摘录发给你自行配置的模型服务。</p>`;
+    $('infoBody').innerHTML=kind==='help'?`<span class="eyebrow">DEMONSTRATION GUIDE</span><h2>用一条旅程，讲清作品。</h2><ol><li>在“发现非遗”搜索“簪花”，打开详情，查看正式名录名称和来源。</li><li>在“有据问答”询问“歌仔戏起源在哪里？”，对照右侧原文；再问实时场次，展示信息边界。</li><li>到“策划一程”，选择泉州、4 小时、乘车，生成行程；切换步行或 2 小时，观察约束如何改变结果。</li><li>保存行程，刷新页面，再到“我的行程”恢复、重命名并导出。</li></ol><p>文化资料、图片、地图边界随包提供。本地服务运行时，以上核心流程不依赖外网。</p>`:`<span class="eyebrow">ABOUT MINYUN</span><h2>有据可循，有路可行。</h2><p>赛道：AI创新应用挑战赛 · Vibe Coding 作品<br>版本：2.0.0</p><h3>本版真实能力</h3><p>48 个文化条目，45 个已对上国家级名录；3 个待核验条目不参与问答与自动行程。默认问答为检索原文摘录；配置服务端模型后可选用模型整理。时间规划采用小规模穷举与估算交通模型。</p><h3>资料与使用边界</h3><p>国家级非遗名录内容来源：中国非物质文化遗产网。核验日期：2026-11-16。这里只核验文化事实与名录字段，未核验实际门店坐标、票价、营业时间和场次。</p><p>地图使用 Leaflet（BSD-2-Clause）及本地 DataV 行政边界；仅作文化分布示意。非遗图片沿用参赛者原仓库；参赛者确认已获授权，具体来源凭据待补充。</p><p>个人行程只保存在本机。可选模型模式会把你的问题和检索摘录发给你自行配置的模型服务。</p>`;
     $('infoDialog').showModal();
   }
   async function init() {

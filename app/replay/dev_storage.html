@@ -1,0 +1,75 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>迭代链 03 / 保存与回归</title><style>body{margin:0;background:#f4f2e9;color:#234737;font:20px/1.75 "Microsoft YaHei"}main{max-width:1650px;margin:0 auto;padding:110px 80px 160px}h1{font:42px SimSun;margin:12px 0 24px}.lead{color:#71816c;margin-bottom:30px;font-size:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}article{background:#fffefa;border:1px solid #d5ddcc;border-radius:10px;padding:28px;margin:0 0 24px}h2{font-size:23px;margin:10px 0 15px}small{font-size:13px;letter-spacing:1px;color:#a66b4e}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:19px/1.8 "Microsoft YaHei";margin:0}pre.code{font:15px/1.65 Consolas,"Microsoft YaHei";background:#edf1e7;padding:18px;border-radius:7px}.stat{font:50px Georgia}.badge{display:inline-block;padding:8px 18px;border:1px solid #d0d8c7;border-radius:30px;font-size:14px}a{color:#357258}</style><main><span class="badge">MINYUN / BUILD IN THE OPEN</span><h1>迭代链 03 / 保存与回归</h1><p class="lead">真实记录与代码回放；并非正在进行的实时聊天。不补造参赛者逐轮提问。</p><article><small>真实 Git diff · app/main.js</small><h2>导入自定义时长后恢复选项</h2><pre class="code">Timeout(()=&gt;URL.revokeObjectURL(u),1000); }
+@@ -142,6 +142,9 @@
+   }
+   function restore(id) {
+     const r=state.saved.find(x=&gt;x.id===id);if(!r)return;const p=r.plan.params;
++    for(const [id,value,label] of [[&#x27;duration&#x27;,p.minutes,p.minutes+&#x27; 分钟&#x27;],[&#x27;maxStops&#x27;,p.maxStops,p.maxStops+&#x27; 站&#x27;]]){
++      if(![...$(id).options].some(o=&gt;o.value===String(value)))$(id).add(new Option(label,String(value)));
++    }
+     $(&#x27;planCity&#x27;).value=p.city;$(&#x27;travelMode&#x27;).value=p.mode;$(&#x27;duration&#x27;).value=String(p.minutes);$(&#x27;startTime&#x27;).value=p.startTime;$(&#x27;planCategory&#x27;).value=p.category;$(&#x27;maxStops&#x27;).value=String(p.maxStops);state.selected=[...p.siteIds];syncChosen();showPage(&#x27;plan&#x27;);renderPlan(r.plan);window.scrollTo({top:0});
+   }
+   function info(kind) {
+diff --git a/engine.py b/engine.py
+index 10854dc..a4f4c85 100644
+--- a/engine.py
++++ b/engine.py
+@@ -11,6 +11,16 @@
+ DATA_HASH = hashlib.sha256((ROOT / &#x27;data/catalog.json&#x27;).read_bytes()).hexdigest()
+ STOP = (&#x27;请问&#x27;,&#x27;请介绍&#x27;,&#x27;介绍一下&#x27;,&#x27;能不能&#x27;,&#x27;帮我&#x27;,&#x27;我想&#x27;,&#x27;了解&#x27;,&#x27;什么&#x27;,&#x27;哪些&#x27;,&#x27;怎么&#x27;,&#x27;哪里&#x27;,&#x27;一下&#x27;,&#x27;关于&#x27;,&#x27;以及&#x27;,&#x27;是否&#x27;,&#x27;可以&#x27;,&#x27;推荐&#x27;,&#x27;非遗&#x27;)
+ ALIASES = {&#x27;簪花&#x27;: &#x27;簪花围 蟳埔女习俗&#x27;, &#x27;蟳埔&#x27;: &#x27;簪花围 蟳埔女习俗&#x27;, &#x27;南管&#x27;: &#x27;南音&#x27;, &#x27;芗剧&#x27;: &#x27;歌仔戏&#x27;, &#x27;木偶&#x27;: &#x27;提线木偶 布袋木偶&#x27;, &#x27;非物质文化遗产&#x27;: &#x27;非遗&#x27;, &#x27;大红袍&#x27;: &#x27;武夷岩茶&#x27;, &#x27;脱胎漆器&#x27;: &#x27;福州脱胎漆器髹饰技艺&#x27;}
++ENTITY_ALIASES = {
++ &#x27;q01&#x27;:&#x27;簪花,蟳埔&#x27;, &#x27;q02&#x27;:&#x27;南音,南管,弦管&#x27;, &#x27;q03&#x27;:&#x27;提线木偶,悬丝傀儡&#x27;, &#x27;q04&#x27;:&#x27;高甲戏&#x27;, &#x27;q05&#x27;:&#x27;惠安女&#x27;,
++ &#x27;q06&#x27;:&#x27;德化,中国白&#x27;, &#x27;q07&#x27;:&#x27;铁观音&#x27;, &#x27;q09&#x27;:&#x27;送王船&#x27;, &#x27;q10&#x27;:&#x27;福船,水密隔舱&#x27;,
++ &#x27;f01&#x27;:&#x27;闽剧&#x27;, &#x27;f02&#x27;:&#x27;寿山石&#x27;, &#x27;f03&#x27;:&#x27;脱胎漆器&#x27;, &#x27;f05&#x27;:&#x27;福州评话&#x27;, &#x27;f06&#x27;:&#x27;茉莉花茶&#x27;, &#x27;f07&#x27;:&#x27;佛跳墙&#x27;,
++ &#x27;x01&#x27;:&#x27;漆线雕&#x27;,&#x27;x02&#x27;:&#x27;博饼&#x27;,&#x27;x03&#x27;:&#x27;珠绣&#x27;,&#x27;x04&#x27;:&#x27;答嘴鼓&#x27;,&#x27;x05&#x27;:&#x27;闽南童谣&#x27;,
++ &#x27;z01&#x27;:&#x27;歌仔戏,芗剧&#x27;,&#x27;z02&#x27;:&#x27;木偶头&#x27;,&#x27;z03&#x27;:&#x27;闽南土楼&#x27;,&#x27;z04&#x27;:&#x27;片仔癀&#x27;,&#x27;z05&#x27;:&#x27;木版年画&#x27;,&#x27;z06&#x27;:&#x27;八宝印泥&#x27;,
++ &#x27;p01&#x27;:&#x27;妈祖&#x27;,&#x27;p02&#x27;:&#x27;莆仙戏&#x27;,&#x27;p03&#x27;:&#x27;莆田木雕&#x27;,&#x27;p04&#x27;:&#x27;仙游,古典家具&#x27;,&#x27;s01&#x27;:&#x27;梅林戏&#x27;,&#x27;s02&#x27;:&#x27;沙县小吃&#x27;,&#x27;s03&#x27;:&#x27;大腔戏&#x27;,
++ &#x27;</pre></article><article><small>tests/browser_test.py · 实际代码</small><h2>不是只测页面能否打开</h2><pre class="code">&#x27;).count()==2)
+  await page.locator(&#x27;[data-delete]&#x27;).first.click();await page.locator(&#x27;#confirmDelete&#x27;).click();await expect(page.locator(&#x27;.saved-card&#x27;)).to_have_count(1);await check(&#x27;delete confirm&#x27;,True)
+  # Import valid API values not present in the preset selects, then restore and regenerate.
+  custom=json.loads((OUT/&#x27;backup.json&#x27;).read_text());custom[&#x27;params&#x27;].update(minutes=275,maxStops=1)
+  (OUT/&#x27;custom.json&#x27;).write_text(json.dumps(custom),encoding=&#x27;utf8&#x27;);await page.locator(&#x27;#importPlan&#x27;).set_input_files(str(OUT/&#x27;custom.json&#x27;));await expect(page.locator(&#x27;.saved-card&#x27;)).to_have_count(2)
+  await page.locator(&#x27;[data-restore]&#x27;).first.click();await check(&#x27;custom duration restored&#x27;,await page.locator(&#x27;#duration&#x27;).input_value()==&#x27;275&#x27;)
+  await page.locator(&#x27;#planSubmit&#x27;).click();await page.wait_for_selector(&#x27;#planOutput:visible&#x27;)
+  for width,height in [(320,800),(390,844),(768,1024),(1440,1000),(1920,1080)]:
+   await page.set_viewport_size({&#x27;width&#x27;:width,&#x27;height&#x27;:height})
+   for tab in [&#x27;explore&#x27;,&#x27;ask&#x27;,&#x27;plan&#x27;,&#x27;saved&#x27;]:
+    await page.locator(&#x27;[data-page=&quot;&#x27;+tab+&#x27;&quot;]&#x27;).click();await page.wait_for_timeout(200)
+    overflow=await page.evaluate(&#x27;document.documentElement.scrollWidth&gt;innerWidth+1&#x27;)
+    await check(f&#x27;layout {width} {tab}&#x27;,not overflow)
+    if tab in [&#x27;explore&#x27;,&#x27;plan&#x27;,&#x27;ask&#x27;]:await page.screenshot(path=str(OUT/f&#x27;{tab}-{width}.png&#x27;))
+  await page.set_viewport_size({&#x27;width&#x27;:1440,&#x27;height&#x27;:1000});await page.locator(&#x27;[data-page=&quot;explore&quot;]&#x27;).click()
+  await page.evaluate(&#x27;document.querySelectorAll(&quot;img&quot;).forEach(i=&gt;i.loading=&quot;eager&quot;)&#x27;);await page.wait_for_timeout(500)
+  await check(&#x27;all images load&#x27;,await page.evaluate(&#x27;[...document.images].every(i=&gt;i.complete&amp;&amp;i.naturalWidth&gt;0)&#x27;))
+  await check(&#x27;no uncaught JS errors&#x27;,not errors);await check(&#x27;no external requests in core flow&#x27;,not external)
+  await browser.close()
+ return {&#x27;checks&#x27;:checks,&#x27;passed&#x27;:sum(c[&#x27;pass&#x27;] for c in checks),&#x27;total&#x27;:len(checks),&#x27;javascriptErrors&#x27;:errors,&#x27;externalRequests&#x27;:external,&#x27;browser&#x27;:&#x27;In</pre></article><article><small>后端真实输出</small><h2>重启持久化与输入保护</h2><pre class="code">test_auth (__main__.APITests.test_auth) ... ok
+test_bad_json (__main__.APITests.test_bad_json) ... ok
+test_bad_query_type (__main__.APITests.test_bad_query_type) ... ok
+test_crud_restart (__main__.APITests.test_crud_restart) ... ok
+test_forged_plan_recomputed (__main__.APITests.test_forged_plan_recomputed) ... ok
+test_health (__main__.APITests.test_health) ... ok
+test_private_files (__main__.APITests.test_private_files) ... ok
+test_script_title_is_data (__main__.APITests.test_script_title_is_data) ... ok
+test_alias (__main__.EvidenceTests.test_alias) ... ok
+test_bad_question (__main__.EvidenceTests.test_bad_question) ... ok
+test_citation_alignment (__main__.EvidenceTests.test_citation_alignment) ... ok
+test_correct_origin (__main__.EvidenceTests.test_correct_origin) ... ok
+test_dynamic_boundary (__main__.EvidenceTests.test_dynamic_boundary) ... ok
+test_entity_isolation (__main__.EvidenceTests.test_entity_isolation) ... ok
+test_integrity (__main__.EvidenceTests.test_integrity) ... ok
+test_out_of_scope (__main__.EvidenceTests.test_out_of_scope) ... ok
+test_unverified_refusal (__main__.EvidenceTests.test_unverified_refusal) ... ok
+test_budget_and_unique (__main__.PlannerTests.test_budget_and_unique) ... ok
+test_candidate_subset (__main__.PlannerTests.test_candidate_subset) ... ok
+test_custom_duration (__main__.PlannerTests.test_custom_duration) ... ok
+test_determinism (__main__.PlannerTests.test_determinism) ... ok
+test_infeasible (__main__.PlannerTests.test_infeasible) ... ok
+test_invalid_inputs (__main__.PlannerTests.test_invalid_inputs) ... ok
+test_transport_changes (__main__.PlannerTests.test_transport_changes) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 1.244s
+
+OK
+</pre></article></main></html>

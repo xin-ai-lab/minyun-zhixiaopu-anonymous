@@ -1,0 +1,784 @@
+diff --git a/app/main.js b/app/main.js
+index d8fb2e2..9a2d04b 100644
+--- a/app/main.js
++++ b/app/main.js
+@@ -29,10 +29,10 @@
+     if(page==='saved')renderSaved().catch(e=>toast(e.message));
+   }
+   function initMap(id) {
+-    const map=L.map(id,{minZoom:5,maxZoom:14,attributionControl:true,scrollWheelZoom:false}).setView([26.1,118.5],7);
++    const map=L.map(id,{minZoom:5,maxZoom:14,attributionControl:true,scrollWheelZoom:false,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false}).setView([26.1,118.5],7);
+     map.attributionControl.addAttribution('文化分布示意 · 边界数据 DataV · 非导航地图');
+     L.geoJSON(state.boundary,{style:{color:'#a9bba0',weight:1,fillColor:'#d6e0cd',fillOpacity:.8}}).addTo(map);
+-    const bounds=L.geoJSON(state.boundary).getBounds();map.fitBounds(bounds,{padding:[20,20]});return map;
++    const bounds=L.geoJSON(state.boundary).getBounds();map.fitBounds(bounds,{padding:[20,20],animate:false});return map;
+   }
+   function renderExplore() {
+     const q=$('search').value.trim().toLowerCase(),city=$('cityFilter').value,cat=$('categoryFilter').value;
+@@ -122,7 +122,7 @@
+       const pts=p.stops.map(t=>{const s=site(t.siteId);return [s.lat,s.lng];});
+       L.polyline(pts,{color:'#ae6547',weight:3,dashArray:'5 8'}).addTo(state.routeLayer);
+       pts.forEach((pt,i)=>L.marker(pt,{icon:L.divIcon({className:'',html:'<span class="map-number">'+(i+1)+'</span>',iconSize:[26,26]})}).bindTooltip(p.stops[i].name).addTo(state.routeLayer));
+-      state.routeMap.fitBounds(L.latLngBounds(pts),{padding:[35,35],maxZoom:10});
++      state.routeMap.fitBounds(L.latLngBounds(pts),{padding:[35,35],maxZoom:13,animate:false});
+     });
+   }
+   function download(name,body,type) { const blob=new Blob([body],{type});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000); }
+@@ -142,6 +142,9 @@
+   }
+   function restore(id) {
+     const r=state.saved.find(x=>x.id===id);if(!r)return;const p=r.plan.params;
++    for(const [id,value,label] of [['duration',p.minutes,p.minutes+' 分钟'],['maxStops',p.maxStops,p.maxStops+' 站']]){
++      if(![...$(id).options].some(o=>o.value===String(value)))$(id).add(new Option(label,String(value)));
++    }
+     $('planCity').value=p.city;$('travelMode').value=p.mode;$('duration').value=String(p.minutes);$('startTime').value=p.startTime;$('planCategory').value=p.category;$('maxStops').value=String(p.maxStops);state.selected=[...p.siteIds];syncChosen();showPage('plan');renderPlan(r.plan);window.scrollTo({top:0});
+   }
+   function info(kind) {
+diff --git a/engine.py b/engine.py
+index 10854dc..a4f4c85 100644
+--- a/engine.py
++++ b/engine.py
+@@ -11,6 +11,16 @@
+ DATA_HASH = hashlib.sha256((ROOT / 'data/catalog.json').read_bytes()).hexdigest()
+ STOP = ('请问','请介绍','介绍一下','能不能','帮我','我想','了解','什么','哪些','怎么','哪里','一下','关于','以及','是否','可以','推荐','非遗')
+ ALIASES = {'簪花': '簪花围 蟳埔女习俗', '蟳埔': '簪花围 蟳埔女习俗', '南管': '南音', '芗剧': '歌仔戏', '木偶': '提线木偶 布袋木偶', '非物质文化遗产': '非遗', '大红袍': '武夷岩茶', '脱胎漆器': '福州脱胎漆器髹饰技艺'}
++ENTITY_ALIASES = {
++ 'q01':'簪花,蟳埔', 'q02':'南音,南管,弦管', 'q03':'提线木偶,悬丝傀儡', 'q04':'高甲戏', 'q05':'惠安女',
++ 'q06':'德化,中国白', 'q07':'铁观音', 'q09':'送王船', 'q10':'福船,水密隔舱',
++ 'f01':'闽剧', 'f02':'寿山石', 'f03':'脱胎漆器', 'f05':'福州评话', 'f06':'茉莉花茶', 'f07':'佛跳墙',
++ 'x01':'漆线雕','x02':'博饼','x03':'珠绣','x04':'答嘴鼓','x05':'闽南童谣',
++ 'z01':'歌仔戏,芗剧','z02':'木偶头','z03':'闽南土楼','z04':'片仔癀','z05':'木版年画','z06':'八宝印泥',
++ 'p01':'妈祖','p02':'莆仙戏','p03':'莆田木雕','p04':'仙游,古典家具','s01':'梅林戏','s02':'沙县小吃','s03':'大腔戏',
++ 'n01':'岩茶,大红袍','n02':'建盏,建窑','n03':'四平戏','n04':'浦城剪纸','l01':'闽西汉剧','l02':'客家土楼',
++ 'l03':'四堡,雕版印刷','l04':'客家元宵','d01':'小说歌','d02':'福鼎白茶','d03':'霍童,线狮','d04':'柘荣剪纸',
++ 't01':'平潭贝雕','t02':'藤牌操','t03':'词明戏'}
+ 
+ def normalize(text):
+     return re.sub(r'[^\w\u4e00-\u9fff]', '', str(text).lower())
+@@ -42,11 +52,12 @@
+     qt=set(tokens(expanded))
+     if not qt: qt=set(tokens(raw))
+     named=[s['id'] for s in SITES if normalize(s['name']) in raw or normalize(s['officialName']) in raw
+-           or any(normalize(t) in raw for t in s['tags'] if len(t)>=2)]
++           or any(t in raw for t in ENTITY_ALIASES.get(s['id'],'').split(',') if t)]
+     detected=[c for c in CATALOG['cities'][1:] if c in raw]
+     scored=[]
+     for d in DOCS:
+         s=BY_ID[d['siteId']]
++        if named and s['id'] not in named:continue
+         if city!='全部' and s['city']!=city:continue
+         if category!='all' and s['cat']!=category:continue
+         if detected and not named and s['city'] not in detected:continue
+@@ -72,6 +83,7 @@
+     return result
+ 
+ def answer(query,city='全部',category='all'):
++    if not isinstance(query,str): raise ValueError('问题必须是文字。')
+     query=query.strip()
+     if not query: raise ValueError('请输入你想了解的问题。')
+     hits=search(query,city,category,4)
+diff --git a/evidence/browser-results.json b/evidence/browser-results.json
+new file mode 100644
+index 0000000..888d5fe
+--- /dev/null
++++ b/evidence/browser-results.json
+@@ -0,0 +1,176 @@
++{
++  "checks": [
++    {
++      "name": "offline catalog loads",
++      "pass": true
++    },
++    {
++      "name": "empty search state",
++      "pass": true
++    },
++    {
++      "name": "search filter",
++      "pass": true
++    },
++    {
++      "name": "detail source",
++      "pass": true
++    },
++    {
++      "name": "keyboard close dialog",
++      "pass": true
++    },
++    {
++      "name": "origin correction and citation",
++      "pass": true
++    },
++    {
++      "name": "unverified source refusal",
++      "pass": true
++    },
++    {
++      "name": "plan valid",
++      "pass": true
++    },
++    {
++      "name": "changed constraints invalidate result",
++      "pass": true
++    },
++    {
++      "name": "invalid overnight shows error",
++      "pass": true
++    },
++    {
++      "name": "HTML export includes limits",
++      "pass": true
++    },
++    {
++      "name": "saved after reload",
++      "pass": true
++    },
++    {
++      "name": "rename XSS escaped",
++      "pass": true
++    },
++    {
++      "name": "JSON round trip",
++      "pass": true
++    },
++    {
++      "name": "delete cancel",
++      "pass": true
++    },
++    {
++      "name": "delete confirm",
++      "pass": true
++    },
++    {
++      "name": "custom duration restored",
++      "pass": true
++    },
++    {
++      "name": "layout 320 explore",
++      "pass": true
++    },
++    {
++      "name": "layout 320 ask",
++      "pass": true
++    },
++    {
++      "name": "layout 320 plan",
++      "pass": true
++    },
++    {
++      "name": "layout 320 saved",
++      "pass": true
++    },
++    {
++      "name": "layout 390 explore",
++      "pass": true
++    },
++    {
++      "name": "layout 390 ask",
++      "pass": true
++    },
++    {
++      "name": "layout 390 plan",
++      "pass": true
++    },
++    {
++      "name": "layout 390 saved",
++      "pass": true
++    },
++    {
++      "name": "layout 768 explore",
++      "pass": true
++    },
++    {
++      "name": "layout 768 ask",
++      "pass": true
++    },
++    {
++      "name": "layout 768 plan",
++      "pass": true
++    },
++    {
++      "name": "layout 768 saved",
++      "pass": true
++    },
++    {
++      "name": "layout 1440 explore",
++      "pass": true
++    },
++    {
++      "name": "layout 1440 ask",
++      "pass": true
++    },
++    {
++      "name": "layout 1440 plan",
++      "pass": true
++    },
++    {
++      "name": "layout 1440 saved",
++      "pass": true
++    },
++    {
++      "name": "layout 1920 explore",
++      "pass": true
++    },
++    {
++      "name": "layout 1920 ask",
++      "pass": true
++    },
++    {
++      "name": "layout 1920 plan",
++      "pass": true
++    },
++    {
++      "name": "layout 1920 saved",
++      "pass": true
++    },
++    {
++      "name": "all images load",
++      "pass": true
++    },
++    {
++      "name": "no uncaught JS errors",
++      "pass": true
++    },
++    {
++      "name": "no external requests in core flow",
++      "pass": true
++    }
++  ],
++  "passed": 40,
++  "total": 40,
++  "javascriptErrors": [],
++  "externalRequests": [],
++  "browser": "Installed Google Chrome, headless; network restricted to localhost",
++  "viewports": [
++    320,
++    390,
++    768,
++    1440,
++    1920
++  ]
++}
+\ No newline at end of file
+diff --git a/evidence/evaluation.json b/evidence/evaluation.json
+new file mode 100644
+index 0000000..8865d6a
+--- /dev/null
++++ b/evidence/evaluation.json
+@@ -0,0 +1,277 @@
++{
++  "definition": "公开的开发定向回归集，不代表真实用户准确率；部分用例参与修复。",
++  "dataHash": "55c6623ccbf0659bd1536564b08a09b2aaafae8ff326f7177ce69785f390e241",
++  "total": 30,
++  "passed": 30,
++  "entityTop1": {
++    "passed": 25,
++    "total": 25
++  },
++  "refusal": {
++    "passed": 5,
++    "total": 5
++  },
++  "medianMilliseconds": 0.144,
++  "cases": [
++    {
++      "query": "簪花围是什么",
++      "expectedTop1": "q01",
++      "actual": [
++        "q01"
++      ],
++      "pass": true,
++      "milliseconds": 1.301
++    },
++    {
++      "query": "南管是什么",
++      "expectedTop1": "q02",
++      "actual": [
++        "q02"
++      ],
++      "pass": true,
++      "milliseconds": 0.165
++    },
++    {
++      "query": "泉州提线木偶怎么表演",
++      "expectedTop1": "q03",
++      "actual": [
++        "q03"
++      ],
++      "pass": true,
++      "milliseconds": 0.225
++    },
++    {
++      "query": "高甲戏使用什么乐器",
++      "expectedTop1": "q04",
++      "actual": [
++        "q04"
++      ],
++      "pass": true,
++      "milliseconds": 0.186
++    },
++    {
++      "query": "惠安女服饰有什么特点",
++      "expectedTop1": "q05",
++      "actual": [
++        "q05"
++      ],
++      "pass": true,
++      "milliseconds": 0.168
++    },
++    {
++      "query": "德化白瓷怎么制作",
++      "expectedTop1": "q06",
++      "actual": [
++        "q06"
++      ],
++      "pass": true,
++      "milliseconds": 0.142
++    },
++    {
++      "query": "安溪铁观音的起源",
++      "expectedTop1": "q07",
++      "actual": [
++        "q07"
++      ],
++      "pass": true,
++      "milliseconds": 0.14
++    },
++    {
++      "query": "厦门送王船是什么习俗",
++      "expectedTop1": "q09",
++      "actual": [
++        "q09"
++      ],
++      "pass": true,
++      "milliseconds": 0.127
++    },
++    {
++      "query": "水密隔舱福船的特点",
++      "expectedTop1": "q10",
++      "actual": [
++        "q10"
++      ],
++      "pass": true,
++      "milliseconds": 0.167
++    },
++    {
++      "query": "闽剧用什么方言演唱",
++      "expectedTop1": "f01",
++      "actual": [
++        "f01"
++      ],
++      "pass": true,
++      "milliseconds": 0.162
++    },
++    {
++      "query": "寿山石雕是什么",
++      "expectedTop1": "f02",
++      "actual": [
++        "f02"
++      ],
++      "pass": true,
++      "milliseconds": 0.132
++    },
++    {
++      "query": "脱胎漆器的历史",
++      "expectedTop1": "f03",
++      "actual": [
++        "f03"
++      ],
++      "pass": true,
++      "milliseconds": 0.156
++    },
++    {
++      "query": "福州评话的形式",
++      "expectedTop1": "f05",
++      "actual": [
++        "f05"
++      ],
++      "pass": true,
++      "milliseconds": 0.141
++    },
++    {
++      "query": "福州茉莉花茶如何窨制",
++      "expectedTop1": "f06",
++      "actual": [
++        "f06"
++      ],
++      "pass": true,
++      "milliseconds": 0.153
++    },
++    {
++      "query": "佛跳墙来自哪里",
++      "expectedTop1": "f07",
++      "actual": [
++        "f07"
++      ],
++      "pass": true,
++      "milliseconds": 0.171
++    },
++    {
++      "query": "厦门漆线雕的历史",
++      "expectedTop1": "x01",
++      "actual": [
++        "x01"
++      ],
++      "pass": true,
++      "milliseconds": 0.144
++    },
++    {
++      "query": "厦门中秋博饼是什么",
++      "expectedTop1": "x02",
++      "actual": [
++        "x02"
++      ],
++      "pass": true,
++      "milliseconds": 0.136
++    },
++    {
++      "query": "厦门珠绣有什么材料",
++      "expectedTop1": "x03",
++      "actual": [
++        "x03"
++      ],
++      "pass": true,
++      "milliseconds": 0.137
++    },
++    {
++      "query": "歌仔戏起源在哪里",
++      "expectedTop1": "z01",
++      "actual": [
++        "z01"
++      ],
++      "pass": true,
++      "milliseconds": 0.144
++    },
++    {
++      "query": "芗剧是什么",
++      "expectedTop1": "z01",
++      "actual": [
++        "z01"
++      ],
++      "pass": true,
++      "milliseconds": 0.133
++    },
++    {
++      "query": "妈祖信俗的起源",
++      "expectedTop1": "p01",
++      "actual": [
++        "p01"
++      ],
++      "pass": true,
++      "milliseconds": 0.144
++    },
++    {
++      "query": "莆仙戏的历史",
++      "expectedTop1": "p02",
++      "actual": [
++        "p02"
++      ],
++      "pass": true,
++      "milliseconds": 0.135
++    },
++    {
++      "query": "武夷岩茶有什么特点",
++      "expectedTop1": "n01",
++      "actual": [
++        "n01"
++      ],
++      "pass": true,
++      "milliseconds": 0.13
++    },
++    {
++      "query": "建盏如何烧制",
++      "expectedTop1": "n02",
++      "actual": [
++        "n02"
++      ],
++      "pass": true,
++      "milliseconds": 0.167
++    },
++    {
++      "query": "霍童线狮怎么表演",
++      "expectedTop1": "d03",
++      "actual": [
++        "d03"
++      ],
++      "pass": true,
++      "milliseconds": 0.142
++    },
++    {
++      "query": "火星上有多少只企鹅",
++      "expectedTop1": null,
++      "actual": [],
++      "pass": true,
++      "milliseconds": 0.281
++    },
++    {
++      "query": "今天上证指数多少",
++      "expectedTop1": null,
++      "actual": [],
++      "pass": true,
++      "milliseconds": 0.248
++    },
++    {
++      "query": "如何安装显卡驱动",
++      "expectedTop1": null,
++      "actual": [],
++      "pass": true,
++      "milliseconds": 0.263
++    },
++    {
++      "query": "平潭贝雕的国家级传承人是谁",
++      "expectedTop1": null,
++      "actual": [],
++      "pass": true,
++      "milliseconds": 0.099
++    },
++    {
++      "query": "藤牌操的传承人名单",
++      "expectedTop1": null,
++      "actual": [],
++      "pass": true,
++      "milliseconds": 0.113
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/server.py b/server.py
+index f8d3447..bdb15db 100644
+--- a/server.py
++++ b/server.py
+@@ -1,6 +1,7 @@
+ """Local first app server. No pip dependencies. Run: python server.py --no-browser."""
+-import argparse, http.server, json, os, secrets, sqlite3, threading, time, urllib.parse, urllib.request, uuid, webbrowser
++import argparse, http.server, json, os, secrets, sqlite3, sys, threading, time, urllib.parse, urllib.request, uuid, webbrowser
+ from pathlib import Path
++sys.path.insert(0, str(Path(__file__).resolve().parent))
+ from engine import CATALOG, DATA_HASH, VERSION, answer, plan
+ 
+ ROOT=Path(__file__).resolve().parent
+diff --git a/tests/browser_test.py b/tests/browser_test.py
+new file mode 100644
+index 0000000..a18da54
+--- /dev/null
++++ b/tests/browser_test.py
+@@ -0,0 +1,81 @@
++"""UI acceptance checks using installed Chrome and playwright (development only)."""
++import sys,json,asyncio,os,subprocess,socket,tempfile,time
++from pathlib import Path
++ROOT=Path(__file__).resolve().parents[1]
++from playwright.async_api import async_playwright, expect
++OUT=ROOT/'tests/artifacts'
++async def run(url):
++ OUT.mkdir(exist_ok=True,parents=True);checks=[];errors=[];external=[]
++ async with async_playwright() as pw:
++  browser=await pw.chromium.launch(executable_path=os.environ.get('CHROME_PATH',r'C:\Program Files\Google\Chrome\Application\chrome.exe'),headless=True)
++  page=await browser.new_page(viewport={'width':1440,'height':1000})
++  page.on('pageerror',lambda e:errors.append(str(e)))
++  async def route(r):
++   if not r.request.url.startswith(url) and not r.request.url.startswith(('blob:','data:')):external.append(r.request.url);await r.abort()
++   else:await r.continue_()
++  await page.route('**/*',route)
++  async def check(name,condition):
++   checks.append({'name':name,'pass':bool(condition)})
++   if not condition:raise AssertionError(name)
++  await page.goto(url);await page.wait_for_selector('.site-card')
++  await check('offline catalog loads',await page.locator('.site-card').count()==48)
++  await page.locator('#search').fill('不存在的项目');await check('empty search state',await page.locator('.empty-state').count()==1)
++  await page.locator('#clearFilter').click();await page.locator('#search').fill('簪花');await check('search filter',await page.locator('.site-card').count()==1)
++  await page.locator('[data-detail="q01"]').first.click();await check('detail source',await page.locator('#detailDialog .source-box').count()==1)
++  await page.keyboard.press('Escape');await check('keyboard close dialog',not await page.locator('#detailDialog').is_visible())
++  await page.locator('#clearFilter').click()
++  await page.locator('[data-page="ask"]').click();await page.locator('#question').fill('歌仔戏起源在哪里？');await page.locator('#askSubmit').click();await page.wait_for_selector('.evidence-card')
++  await check('origin correction and citation', '台湾' in await page.locator('#messages').inner_text() and await page.locator('.evidence-card').count()==1)
++  await page.locator('#question').fill('平潭贝雕的国家级传承人是谁？');await page.locator('#askSubmit').click();await expect(page.locator('#askSubmit')).to_be_enabled()
++  await check('unverified source refusal',await page.locator('.evidence-card').count()==0)
++  await page.locator('[data-page="plan"]').click();await page.locator('#planSubmit').click();await page.wait_for_selector('#planOutput:visible')
++  await check('plan valid',await page.locator('.timeline-step').count()==3)
++  await page.locator('#duration').select_option('120');await check('changed constraints invalidate result',not await page.locator('#planOutput').is_visible())
++  await page.locator('#planSubmit').click();await page.wait_for_selector('#planOutput:visible')
++  await page.locator('#startTime').fill('23:30');await page.locator('#planSubmit').click();await expect(page.locator('#planError')).not_to_be_empty()
++  await check('invalid overnight shows error',not await page.locator('#planOutput').is_visible())
++  await page.locator('#startTime').fill('09:00');await page.locator('#duration').select_option('240');await page.locator('#planSubmit').click();await page.wait_for_selector('#planOutput:visible')
++  async with page.expect_download() as d:await page.locator('#exportPlan').click()
++  dl=await d.value;await dl.save_as(OUT/'行程单.html');await check('HTML export includes limits','未接入实时路况' in (OUT/'行程单.html').read_text(encoding='utf8'))
++  async with page.expect_download() as d:await page.locator('#downloadJson').click()
++  dl=await d.value;await dl.save_as(OUT/'backup.json')
++  await page.locator('#savePlan').click();await expect(page.locator('#savePlan')).to_be_enabled()
++  await page.reload();await page.wait_for_selector('#health');await page.locator('[data-page="saved"]').click();await page.wait_for_selector('.saved-card')
++  await check('saved after reload',await page.locator('.saved-card').count()==1)
++  await page.locator('[data-edit]').first.click();await page.locator('#editTitle').fill('<img src=x onerror=alert(1)>');await page.locator('#editForm button[type="submit"],#editForm button:not([type])').click();await page.wait_for_selector('#editDialog',state='hidden')
++  await check('rename XSS escaped',await page.locator('.saved-card img').count()==0 and '<img' in await page.locator('.saved-card h2').inner_text())
++  await page.locator('#importPlan').set_input_files(str(OUT/'backup.json'));await expect(page.locator('.saved-card')).to_have_count(2);await check('JSON round trip',True)
++  await page.locator('[data-delete]').first.click();await page.locator('#cancelDelete').click();await check('delete cancel',await page.locator('.saved-card').count()==2)
++  await page.locator('[data-delete]').first.click();await page.locator('#confirmDelete').click();await expect(page.locator('.saved-card')).to_have_count(1);await check('delete confirm',True)
++  # Import valid API values not present in the preset selects, then restore and regenerate.
++  custom=json.loads((OUT/'backup.json').read_text());custom['params'].update(minutes=275,maxStops=1)
++  (OUT/'custom.json').write_text(json.dumps(custom),encoding='utf8');await page.locator('#importPlan').set_input_files(str(OUT/'custom.json'));await expect(page.locator('.saved-card')).to_have_count(2)
++  await page.locator('[data-restore]').first.click();await check('custom duration restored',await page.locator('#duration').input_value()=='275')
++  await page.locator('#planSubmit').click();await page.wait_for_selector('#planOutput:visible')
++  for width,height in [(320,800),(390,844),(768,1024),(1440,1000),(1920,1080)]:
++   await page.set_viewport_size({'width':width,'height':height})
++   for tab in ['explore','ask','plan','saved']:
++    await page.locator('[data-page="'+tab+'"]').click();await page.wait_for_timeout(200)
++    overflow=await page.evaluate('document.documentElement.scrollWidth>innerWidth+1')
++    await check(f'layout {width} {tab}',not overflow)
++    if tab in ['explore','plan','ask']:await page.screenshot(path=str(OUT/f'{tab}-{width}.png'))
++  await page.set_viewport_size({'width':1440,'height':1000});await page.locator('[data-page="explore"]').click()
++  await page.evaluate('document.querySelectorAll("img").forEach(i=>i.loading="eager")');await page.wait_for_timeout(500)
++  await check('all images load',await page.evaluate('[...document.images].every(i=>i.complete&&i.naturalWidth>0)'))
++  await check('no uncaught JS errors',not errors);await check('no external requests in core flow',not external)
++  await browser.close()
++ return {'checks':checks,'passed':sum(c['pass'] for c in checks),'total':len(checks),'javascriptErrors':errors,'externalRequests':external,'browser':'Installed Google Chrome, headless; network restricted to localhost','viewports':[320,390,768,1440,1920]}
++def main():
++ with tempfile.TemporaryDirectory(prefix='minyun UI 中文 ') as tmp:
++  with socket.socket() as s:s.bind(('127.0.0.1',0));port=s.getsockname()[1]
++  env=dict(os.environ,MINYUN_DB=str(Path(tmp)/'test.sqlite3'))
++  proc=subprocess.Popen([sys.executable,str(ROOT/'server.py'),'--no-browser','--port',str(port)],env=env,stdout=subprocess.DEVNULL)
++  try:
++   import urllib.request
++   for i in range(100):
++    try:urllib.request.urlopen(f'http://127.0.0.1:{port}/api/health').close();break
++    except Exception:time.sleep(.05)
++   result=asyncio.run(run(f'http://127.0.0.1:{port}'))
++   (ROOT/'evidence/browser-results.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf8');print(json.dumps(result,ensure_ascii=False,indent=2))
++  finally:proc.terminate();proc.wait()
++if __name__=='__main__':main()
+diff --git a/tests/evaluate.py b/tests/evaluate.py
+new file mode 100644
+index 0000000..6bdf6e8
+--- /dev/null
++++ b/tests/evaluate.py
+@@ -0,0 +1,21 @@
++"""Small, declared development regression set; not a user study or held-out benchmark."""
++import sys,json,time,statistics
++from pathlib import Path
++ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
++from engine import answer,DATA_HASH
++CASES=[
++ ('簪花围是什么','q01'),('南管是什么','q02'),('泉州提线木偶怎么表演','q03'),('高甲戏使用什么乐器','q04'),('惠安女服饰有什么特点','q05'),
++ ('德化白瓷怎么制作','q06'),('安溪铁观音的起源','q07'),('厦门送王船是什么习俗','q09'),('水密隔舱福船的特点','q10'),('闽剧用什么方言演唱','f01'),
++ ('寿山石雕是什么','f02'),('脱胎漆器的历史','f03'),('福州评话的形式','f05'),('福州茉莉花茶如何窨制','f06'),('佛跳墙来自哪里','f07'),
++ ('厦门漆线雕的历史','x01'),('厦门中秋博饼是什么','x02'),('厦门珠绣有什么材料','x03'),('歌仔戏起源在哪里','z01'),('芗剧是什么','z01'),
++ ('妈祖信俗的起源','p01'),('莆仙戏的历史','p02'),('武夷岩茶有什么特点','n01'),('建盏如何烧制','n02'),('霍童线狮怎么表演','d03'),
++ ('火星上有多少只企鹅',None),('今天上证指数多少',None),('如何安装显卡驱动',None),('平潭贝雕的国家级传承人是谁',None),('藤牌操的传承人名单',None)]
++def evaluate():
++ rows=[]
++ for q,expected in CASES:
++  t=time.perf_counter();a=answer(q);ms=(time.perf_counter()-t)*1000;ids=[h['siteId'] for h in a['hits']]
++  rows.append({'query':q,'expectedTop1':expected,'actual':ids,'pass':(ids[0]==expected if ids else expected is None),'milliseconds':round(ms,3)})
++ pos=[r for r in rows if r['expectedTop1']];neg=[r for r in rows if not r['expectedTop1']]
++ return {'definition':'公开的开发定向回归集，不代表真实用户准确率；部分用例参与修复。','dataHash':DATA_HASH,'total':len(rows),'passed':sum(r['pass'] for r in rows),'entityTop1':{'passed':sum(r['pass'] for r in pos),'total':len(pos)},'refusal':{'passed':sum(r['pass'] for r in neg),'total':len(neg)},'medianMilliseconds':round(statistics.median(r['milliseconds'] for r in rows),3),'cases':rows}
++if __name__=='__main__':
++ result=evaluate();out=ROOT/'evidence/evaluation.json';out.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8');print(json.dumps(result,ensure_ascii=False,indent=2));sys.exit(0 if result['passed']==result['total'] else 1)
+diff --git a/tests/test_core.py b/tests/test_core.py
+new file mode 100644
+index 0000000..4c87153
+--- /dev/null
++++ b/tests/test_core.py
+@@ -0,0 +1,105 @@
++"""Repeatable regression tests. No external services or dependencies required."""
++import sys,unittest,json,subprocess,tempfile,time,os,urllib.request,urllib.error,socket
++from pathlib import Path
++ROOT=Path(__file__).resolve().parents[1]
++sys.path.insert(0,str(ROOT))
++import engine
++
++class EvidenceTests(unittest.TestCase):
++    def test_integrity(self):
++        self.assertEqual(len(engine.SITES),48);self.assertEqual(len(engine.SOURCES),45)
++        for s in engine.SITES:
++            self.assertTrue((ROOT/s['image']).is_file())
++            if s['verified']:
++                src=engine.SOURCES[s['sourceId']]
++                self.assertEqual(engine.hashlib.sha256(src['excerpt'].encode()).hexdigest(),src['sha256'])
++                self.assertTrue(src['url'].startswith('https://www.ihchina.cn/project_details/'))
++    def test_alias(self):self.assertEqual(engine.search('南管是什么？')[0]['siteId'],'q02')
++    def test_entity_isolation(self):self.assertEqual({h['siteId'] for h in engine.search('南音使用哪些乐器？')},{'q02'})
++    def test_correct_origin(self):self.assertIn('台湾',engine.answer('歌仔戏起源在哪里？')['answer'])
++    def test_unverified_refusal(self):self.assertEqual(engine.answer('平潭贝雕的国家级传承人是谁？')['hits'],[])
++    def test_out_of_scope(self):
++        for q in ['火星上有多少只企鹅？','今天上证指数多少？','如何安装显卡驱动？','明天北京天气？']:
++            with self.subTest(q=q):self.assertEqual(engine.answer(q)['citations'],[])
++    def test_dynamic_boundary(self):self.assertTrue(engine.answer('泉州南音今天几点演出？')['needsVerification'])
++    def test_bad_question(self):
++        for q in ['',None,[],123,'a'*501]:
++            with self.subTest(q=repr(q)[:30]),self.assertRaises(ValueError):engine.answer(q)
++    def test_citation_alignment(self):
++        a=engine.answer('泉州有哪些非遗？')
++        for i,s in enumerate(a['citations'],1):self.assertIn(f'[{i}]',a['answer']);self.assertEqual(s['id'],a['hits'][i-1]['source']['id'])
++
++class PlannerTests(unittest.TestCase):
++    def test_budget_and_unique(self):
++        for city in engine.ANCHORS:
++            for mode in engine.SPEED:
++                with self.subTest(city=city,mode=mode):
++                    try:p=engine.plan({'city':city,'mode':mode,'minutes':600})
++                    except ValueError:continue
++                    self.assertLessEqual(p['minutes'],600)
++                    self.assertEqual(p['minutes'],sum(s['travelMinutes']+s['visitMinutes'] for s in p['stops']))
++                    self.assertEqual(len(p['stops']),len({s['siteId'] for s in p['stops']}))
++                    self.assertTrue(all(engine.BY_ID[s['siteId']]['city']==city for s in p['stops']))
++    def test_transport_changes(self):
++        a=engine.plan({'mode':'drive'});b=engine.plan({'mode':'walk'})
++        self.assertNotEqual(a['stops'],b['stops'])
++    def test_candidate_subset(self):
++        p=engine.plan({'siteIds':['q01','q02'],'minutes':240})
++        self.assertEqual({s['siteId'] for s in p['stops']},{'q01','q02'})
++    def test_determinism(self):self.assertEqual(engine.plan({}),engine.plan({}))
++    def test_invalid_inputs(self):
++        for p in [None,[],{'minutes':29},{'minutes':601},{'startTime':'24:00'},{'startTime':'23:30'}, {'mode':'fly'}, {'city':'平潭'}, {'category':'bad'},{'siteIds':['q01','q01']},{'siteIds':['f01']},{'siteIds':['t01']},{'maxStops':5}]:
++            with self.subTest(p=p),self.assertRaises(ValueError):engine.plan(p)
++    def test_infeasible(self):
++        with self.assertRaises(ValueError):engine.plan({'minutes':30,'mode':'walk'})
++    def test_custom_duration(self):self.assertEqual(engine.plan({'minutes':275,'maxStops':1})['params']['minutes'],275)
++
++class APITests(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        cls.tmp=tempfile.TemporaryDirectory();cls.db=Path(cls.tmp.name)/'test.sqlite3'
++        cls.start()
++    @classmethod
++    def start(cls):
++        with socket.socket() as s:s.bind(('127.0.0.1',0));cls.port=s.getsockname()[1]
++        cls.url=f'http://127.0.0.1:{cls.port}'
++        env=dict(os.environ,MINYUN_DB=str(cls.db));env.pop('AI_API_KEY',None)
++        cls.proc=subprocess.Popen([sys.executable,str(ROOT/'server.py'),'--no-browser','--port',str(cls.port)],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
++        for i in range(100):
++            try:cls.token=json.load(urllib.request.urlopen(cls.url+'/api/health'))['csrfToken'];break
++            except Exception:time.sleep(.05)
++        else:raise RuntimeError('Test server failed')
++    @classmethod
++    def tearDownClass(cls):cls.proc.terminate();cls.proc.wait();cls.tmp.cleanup()
++    def request(self,path,method='GET',body=None,token=True):
++        h={'Content-Type':'application/json'}
++        if token:h['X-Minyun-Token']=self.token
++        req=urllib.request.Request(self.url+path,data=json.dumps(body).encode() if body is not None else None,method=method,headers=h)
++        try:
++            with urllib.request.urlopen(req) as r:return r.status,json.load(r)
++        except urllib.error.HTTPError as e:return e.code,json.load(e)
++    def test_health(self):self.assertEqual(self.request('/api/health')[1]['dataHash'],engine.DATA_HASH)
++    def test_auth(self):self.assertEqual(self.request('/api/plan','POST',{},False)[0],403)
++    def test_private_files(self):
++        for p in ['/.env','/.git/config','/var/minyun.sqlite3','/server.py','/archive/v1/index.html','/assets/%2e%2e/server.py']:
++            with self.subTest(p=p):self.assertEqual(self.request(p)[0],404)
++    def test_bad_query_type(self):self.assertEqual(self.request('/api/answer','POST',{'query':[]})[0],400)
++    def test_crud_restart(self):
++        code,p=self.request('/api/plans','POST',{'params':{'minutes':275,'maxStops':1},'title':'持久化测试'})
++        self.assertEqual(code,201);ident=p['id']
++        self.assertEqual(self.request('/api/plans/'+ident,'PATCH',{'title':'重命名'})[0],200)
++        type(self).proc.terminate();type(self).proc.wait();type(self).start()
++        found=[p for p in self.request('/api/plans')[1] if p['id']==ident]
++        self.assertEqual(found[0]['title'],'重命名')
++        self.assertEqual(self.request('/api/plans/'+ident,'DELETE',{})[0],200)
++        self.assertEqual(self.request('/api/plans/'+ident,'DELETE',{})[0],404)
++    def test_forged_plan_recomputed(self):
++        code,p=self.request('/api/plans','POST',{'params':{'minutes':120},'title':'重算','plan':{'minutes':0}})
++        self.assertEqual(code,201);self.assertGreater(p['plan']['minutes'],0)
++    def test_script_title_is_data(self):
++        title='<img src=x onerror=alert(1)>'
++        code,p=self.request('/api/plans','POST',{'params':{},'title':title})
++        self.assertEqual(code,201);self.assertEqual(p['title'],title)
++    def test_bad_json(self):self.assertEqual(self.request('/api/plan','POST',[])[0],400)
++
++if __name__=='__main__':unittest.main(verbosity=2)

@@ -1,6 +1,6 @@
 {
   "definition": "公开的开发定向回归集，不代表真实用户准确率；部分用例参与修复。",
-  "dataHash": "55c6623ccbf0659bd1536564b08a09b2aaafae8ff326f7177ce69785f390e241",
+  "dataHash": "57eec139f7f6e2f54b35e0bd7b87fcf42bd3436a982031e596a278f0012c9cd1",
   "total": 30,
   "passed": 30,
   "entityTop1": {
@@ -11,7 +11,7 @@
     "passed": 5,
     "total": 5
   },
-  "medianMilliseconds": 0.144,
+  "medianMilliseconds": 0.117,
   "cases": [
     {
       "query": "簪花围是什么",
@@ -20,7 +20,7 @@
         "q01"
       ],
       "pass": true,
-      "milliseconds": 1.301
+      "milliseconds": 1.422
     },
     {
       "query": "南管是什么",
@@ -29,7 +29,7 @@
         "q02"
       ],
       "pass": true,
-      "milliseconds": 0.165
+      "milliseconds": 0.15
     },
     {
       "query": "泉州提线木偶怎么表演",
@@ -38,7 +38,7 @@
         "q03"
       ],
       "pass": true,
-      "milliseconds": 0.225
+      "milliseconds": 0.175
     },
     {
       "query": "高甲戏使用什么乐器",
@@ -47,7 +47,7 @@
         "q04"
       ],
       "pass": true,
-      "milliseconds": 0.186
+      "milliseconds": 0.144
     },
     {
       "query": "惠安女服饰有什么特点",
@@ -56,7 +56,7 @@
         "q05"
       ],
       "pass": true,
-      "milliseconds": 0.168
+      "milliseconds": 0.132
     },
     {
       "query": "德化白瓷怎么制作",
@@ -65,7 +65,7 @@
         "q06"
       ],
       "pass": true,
-      "milliseconds": 0.142
+      "milliseconds": 0.113
     },
     {
       "query": "安溪铁观音的起源",
@@ -74,7 +74,7 @@
         "q07"
       ],
       "pass": true,
-      "milliseconds": 0.14
+      "milliseconds": 0.109
     },
     {
       "query": "厦门送王船是什么习俗",
@@ -83,7 +83,7 @@
         "q09"
       ],
       "pass": true,
-      "milliseconds": 0.127
+      "milliseconds": 0.104
     },
     {
       "query": "水密隔舱福船的特点",
@@ -92,7 +92,7 @@
         "q10"
       ],
       "pass": true,
-      "milliseconds": 0.167
+      "milliseconds": 0.13
     },
     {
       "query": "闽剧用什么方言演唱",
@@ -101,7 +101,7 @@
         "f01"
       ],
       "pass": true,
-      "milliseconds": 0.162
+      "milliseconds": 0.127
     },
     {
       "query": "寿山石雕是什么",
@@ -110,7 +110,7 @@
         "f02"
       ],
       "pass": true,
-      "milliseconds": 0.132
+      "milliseconds": 0.11
     },
     {
       "query": "脱胎漆器的历史",
@@ -119,7 +119,7 @@
         "f03"
       ],
       "pass": true,
-      "milliseconds": 0.156
+      "milliseconds": 0.117
     },
     {
       "query": "福州评话的形式",
@@ -128,7 +128,7 @@
         "f05"
       ],
       "pass": true,
-      "milliseconds": 0.141
+      "milliseconds": 0.112
     },
     {
       "query": "福州茉莉花茶如何窨制",
@@ -137,7 +137,7 @@
         "f06"
       ],
       "pass": true,
-      "milliseconds": 0.153
+      "milliseconds": 0.118
     },
     {
       "query": "佛跳墙来自哪里",
@@ -146,7 +146,7 @@
         "f07"
       ],
       "pass": true,
-      "milliseconds": 0.171
+      "milliseconds": 0.136
     },
     {
       "query": "厦门漆线雕的历史",
@@ -155,7 +155,7 @@
         "x01"
       ],
       "pass": true,
-      "milliseconds": 0.144
+      "milliseconds": 0.116
     },
     {
       "query": "厦门中秋博饼是什么",
@@ -164,7 +164,7 @@
         "x02"
       ],
       "pass": true,
-      "milliseconds": 0.136
+      "milliseconds": 0.113
     },
     {
       "query": "厦门珠绣有什么材料",
@@ -173,7 +173,7 @@
         "x03"
       ],
       "pass": true,
-      "milliseconds": 0.137
+      "milliseconds": 0.108
     },
     {
       "query": "歌仔戏起源在哪里",
@@ -182,7 +182,7 @@
         "z01"
       ],
       "pass": true,
-      "milliseconds": 0.144
+      "milliseconds": 0.106
     },
     {
       "query": "芗剧是什么",
@@ -191,7 +191,7 @@
         "z01"
       ],
       "pass": true,
-      "milliseconds": 0.133
+      "milliseconds": 0.104
     },
     {
       "query": "妈祖信俗的起源",
@@ -200,7 +200,7 @@
         "p01"
       ],
       "pass": true,
-      "milliseconds": 0.144
+      "milliseconds": 0.114
     },
     {
       "query": "莆仙戏的历史",
@@ -209,7 +209,7 @@
         "p02"
       ],
       "pass": true,
-      "milliseconds": 0.135
+      "milliseconds": 0.107
     },
     {
       "query": "武夷岩茶有什么特点",
@@ -218,7 +218,7 @@
         "n01"
       ],
       "pass": true,
-      "milliseconds": 0.13
+      "milliseconds": 0.102
     },
     {
       "query": "建盏如何烧制",
@@ -227,7 +227,7 @@
         "n02"
       ],
       "pass": true,
-      "milliseconds": 0.167
+      "milliseconds": 0.12
     },
     {
       "query": "霍童线狮怎么表演",
@@ -236,42 +236,42 @@
         "d03"
       ],
       "pass": true,
-      "milliseconds": 0.142
+      "milliseconds": 0.11
     },
     {
       "query": "火星上有多少只企鹅",
       "expectedTop1": null,
       "actual": [],
       "pass": true,
-      "milliseconds": 0.281
+      "milliseconds": 0.25
     },
     {
       "query": "今天上证指数多少",
       "expectedTop1": null,
       "actual": [],
       "pass": true,
-      "milliseconds": 0.248
+      "milliseconds": 0.226
     },
     {
       "query": "如何安装显卡驱动",
       "expectedTop1": null,
       "actual": [],
       "pass": true,
-      "milliseconds": 0.263
+      "milliseconds": 0.364
     },
     {
       "query": "平潭贝雕的国家级传承人是谁",
       "expectedTop1": null,
       "actual": [],
       "pass": true,
-      "milliseconds": 0.099
+      "milliseconds": 0.121
     },
     {
       "query": "藤牌操的传承人名单",
       "expectedTop1": null,
       "actual": [],
       "pass": true,
-      "milliseconds": 0.113
+      "milliseconds": 0.082
     }
   ]
 }

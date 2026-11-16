@@ -1,0 +1,43 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>迭代链 01 / 问答检索</title><style>body{margin:0;background:#f4f2e9;color:#234737;font:20px/1.75 "Microsoft YaHei"}main{max-width:1650px;margin:0 auto;padding:110px 80px 160px}h1{font:42px SimSun;margin:12px 0 24px}.lead{color:#71816c;margin-bottom:30px;font-size:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}article{background:#fffefa;border:1px solid #d5ddcc;border-radius:10px;padding:28px;margin:0 0 24px}h2{font-size:23px;margin:10px 0 15px}small{font-size:13px;letter-spacing:1px;color:#a66b4e}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:19px/1.8 "Microsoft YaHei";margin:0}pre.code{font:15px/1.65 Consolas,"Microsoft YaHei";background:#edf1e7;padding:18px;border-radius:7px}.stat{font:50px Georgia}.badge{display:inline-block;padding:8px 18px;border:1px solid #d0d8c7;border-radius:30px;font-size:14px}a{color:#357258}</style><main><span class="badge">MINYUN / BUILD IN THE OPEN</span><h1>迭代链 01 / 问答检索</h1><p class="lead">真实记录与代码回放；并非正在进行的实时聊天。不补造参赛者逐轮提问。</p><article><small>实际输出 E0031 / 只摘取问题与命中列表</small><h2>第一次运行发现的三个问题</h2><pre class="code">南音使用哪些乐器？ [(&#x27;q02&#x27;, 20.234), (&#x27;q04&#x27;, 9.369), (&#x27;n03&#x27;, 3.433)] 以下为名录原文的相关摘录。
+
+南管是什么？ [] 当前资料中没有找到足够相关的依据。我不会补写未经证实的答案。你可以换用项目名称，或先在非遗地图中查看已收录内容。
+
+平潭贝雕的国家级传承人是谁？ [(&#x27;z04&#x27;, 11.737), (&#x27;f02&#x27;, 8.701), (&#x27;d01&#x27;, 7.189), (&#x27;d04&#x27;, 6.45)] 以下为名录原文的相关摘录。
+
+完整原始输出保留在真实协作记录中。</pre></article><article><small>真实 Git diff · engine.py</small><h2>增加实体别名与隔离</h2><pre class="code">01&#x27;:&#x27;平潭贝雕&#x27;,&#x27;t02&#x27;:&#x27;藤牌操&#x27;,&#x27;t03&#x27;:&#x27;词明戏&#x27;}
+ 
+ def normalize(text):
+     return re.sub(r&#x27;[^\w\u4e00-\u9fff]&#x27;, &#x27;&#x27;, str(text).lower())
+@@ -42,11 +52,12 @@
+     qt=set(tokens(expanded))
+     if not qt: qt=set(tokens(raw))
+     named=[s[&#x27;id&#x27;] for s in SITES if normalize(s[&#x27;name&#x27;]) in raw or normalize(s[&#x27;officialName&#x27;]) in raw
+-           or any(normalize(t) in raw for t in s[&#x27;tags&#x27;] if len(t)&gt;=2)]
++           or any(t in raw for t in ENTITY_ALIASES.get(s[&#x27;id&#x27;],&#x27;&#x27;).split(&#x27;,&#x27;) if t)]
+     detected=[c for c in CATALOG[&#x27;cities&#x27;][1:] if c in raw]
+     scored=[]
+     for d in DOCS:
+         s=BY_ID[d[&#x27;siteId&#x27;]]
++        if named and s[&#x27;id&#x27;] not in named:continue
+         if city!=&#x27;全部&#x27; and s[&#x27;city&#x27;]!=city:continue
+         if category!=&#x27;all&#x27; and s[&#x27;cat&#x27;]!=category:continue
+         if detected and not named and s[&#x27;city&#x27;] not in detected:continue
+@@ -72,6 +83,7 @@
+     return result
+ 
+ def answer(query,city=&#x27;全部&#x27;,category=&#x27;all&#x27;):
++    if not isinstance(query,str): raise ValueError(&#x27;问题必须是文字。&#x27;)
+     query=query.strip()
+     if not query: raise ValueError(&#x27;请输入你想了解的问题。&#x27;)
+     hits=search(query,city,category,4)
+</pre></article><article><small>回归断言</small><h2>把缺陷变成可重复的检查</h2><pre class="code">def test_alias(self):self.assertEqual(engine.search(&#x27;南管是什么？&#x27;)[0][&#x27;siteId&#x27;],&#x27;q02&#x27;)
+    def test_entity_isolation(self):self.assertEqual({h[&#x27;siteId&#x27;] for h in engine.search(&#x27;南音使用哪些乐器？&#x27;)},{&#x27;q02&#x27;})
+    def test_correct_origin(self):self.assertIn(&#x27;台湾&#x27;,engine.answer(&#x27;歌仔戏起源在哪里？&#x27;)[&#x27;answer&#x27;])
+    def test_unverified_refusal(self):self.assertEqual(engine.answer(&#x27;平潭贝雕的国家级传承人是谁？&#x27;)[&#x27;hits&#x27;],[])
+    def test_out_of_scope(self):
+        for q in [&#x27;火星上有多少只企鹅？&#x27;,&#x27;今天上证指数多少？&#x27;,&#x27;如何安装显卡驱动？&#x27;,&#x27;明天北京天气？&#x27;]:
+            with self.subTest(q=q):self.assertEqual(engine.answer(q)[&#x27;citations&#x27;],[])
+    def test_dynamic_boundary(self):self.assertTrue(engine.answer(&#x27;泉州南音今天几点演出？&#x27;)[&#x27;needsVerification&#x27;])
+    def test_bad_question(self):
+        for q in [&#x27;&#x27;,None,[],123,&#x27;a&#x27;*501]:
+            with self.subTest(q=repr(q)[:30]),self.</pre></article></main></html>

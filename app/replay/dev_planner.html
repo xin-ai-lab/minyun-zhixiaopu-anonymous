@@ -1,0 +1,56 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>迭代链 02 / 约束规划</title><style>body{margin:0;background:#f4f2e9;color:#234737;font:20px/1.75 "Microsoft YaHei"}main{max-width:1650px;margin:0 auto;padding:110px 80px 160px}h1{font:42px SimSun;margin:12px 0 24px}.lead{color:#71816c;margin-bottom:30px;font-size:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}article{background:#fffefa;border:1px solid #d5ddcc;border-radius:10px;padding:28px;margin:0 0 24px}h2{font-size:23px;margin:10px 0 15px}small{font-size:13px;letter-spacing:1px;color:#a66b4e}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:19px/1.8 "Microsoft YaHei";margin:0}pre.code{font:15px/1.65 Consolas,"Microsoft YaHei";background:#edf1e7;padding:18px;border-radius:7px}.stat{font:50px Georgia}.badge{display:inline-block;padding:8px 18px;border:1px solid #d0d8c7;border-radius:30px;font-size:14px}a{color:#357258}</style><main><span class="badge">MINYUN / BUILD IN THE OPEN</span><h1>迭代链 02 / 约束规划</h1><p class="lead">真实记录与代码回放；并非正在进行的实时聊天。不补造参赛者逐轮提问。</p><article><small>engine.py · 实际代码</small><h2>预算是约束，不是宣传文案</h2><pre class="code">best=None;examined=0
+    for n in range(1,min(max_stops,len(pool))+1):
+        for route in itertools.permutations(pool,n):
+            examined+=1;cur=anchor;elapsed=0;km=0;steps=[]
+            for s in route:
+                dist,travel=segment(cur,[s[&#x27;lat&#x27;],s[&#x27;lng&#x27;]]);arrive=start+elapsed+travel
+                elapsed+=travel+s[&#x27;visitMinutes&#x27;];km+=dist
+                if elapsed&gt;budget:break
+                steps.append({&#x27;siteId&#x27;:s[&#x27;id&#x27;],&#x27;name&#x27;:s[&#x27;name&#x27;],&#x27;travelMinutes&#x27;:travel,&#x27;estimatedKm&#x27;:round(dist,2),
+                              &#x27;arrive&#x27;:fmt(arrive),&#x27;leave&#x27;:fmt(start+elapsed),&#x27;visitMinutes&#x27;:s[&#x27;visitMinutes&#x27;]})
+                cur=[s[&#x27;lat&#x27;],s[&#x27;lng&#x27;]]
+            if len(steps)!=n:continue
+            key=(n,len({s[&#x27;cat&#x27;] for s in route}),-elapsed,-km)
+            if best is None or key&gt;best[0]:best=(key,steps,elapsed,km)
+    if best is None:raise ValueError(&#x27;当前时间预算无法容纳一次完整体验及交通，请增加时间或改用乘车。&#x27;)
+    _,steps,elapsed,km=best
+    chosen_ids={s[&#x27;siteId&#x27;] for s in steps}
+    return {&#x27;city&#x27;:city,&#x27;startTime&#x27;:fmt(start),&#x27;endTime&#x27;:fmt(start+elapsed),&#x27;minutes&#x27;:elapsed,&#x27;budgetMinutes&#x27;:budget,
+            &#x27;remainingMinutes&#x27;:budget-elapsed,&#x27;estimatedKm&#x27;:round(km,1),&#x27;mode&#x27;:mode,&#x27;stops&#x27;:steps,&#x27;examined&#x27;:examined,
+            &#x27;candidateCount&#x27;:len(pool),&#x27;excluded&#x27;:[{&#x27;id&#x27;:s[&#x27;id&#x27;],&#x27;name&#x27;:s[&#x27;name&#x27;],&#x27;reason&#x27;:&#x27;未进入当前时间预算下的推荐组合&#x27;} for s in pool if s[&#x27;id&#x27;] not in chosen_ids],
+            &#x27;params&#x27;:{&#x27;city&#x27;:city,&#x27;mode&#x27;:mode,&#x27;category&#x27;:category,&#x27;minutes&#x27;:budget,&#x27;maxStops&#x27;:max_stops,&#x27;startTime&#x27;:fmt(start),&#x27;siteIds&#x27;:chosen},
+            &#x27;assumptions&#x27;:[&#x27;从城市参考点出发，不包含返程。&#x27;,&#x27;距离为球面直线距离 × 1.35 的路程估算。&#x27;,&#x27;交通速度：步行 4.5、骑行 12、乘车 25 千米/小时；另加换乘缓冲。&#x27;,&#x27;停留时长为策划建议；未接入实时路况、营业时间和预约余量。&#x27;,&#x27;最多 8 个候选、4 站；穷举可行顺序，优先站点数、类别多样性，再最小化估算耗时。&#x27;],
+            &#x27;dataVersion&#x27;:DATA_HASH[:12]}
+</pre></article><article><small>tests/test_core.py · 实际代码</small><h2>检查总时长、重复与城市归属</h2><pre class="code">class PlannerTests(unittest.TestCase):
+    def test_budget_and_unique(self):
+        for city in engine.ANCHORS:
+            for mode in engine.SPEED:
+                with self.subTest(city=city,mode=mode):
+                    try:p=engine.plan({&#x27;city&#x27;:city,&#x27;mode&#x27;:mode,&#x27;minutes&#x27;:600})
+                    except ValueError:continue
+                    self.assertLessEqual(p[&#x27;minutes&#x27;],600)
+                    self.assertEqual(p[&#x27;minutes&#x27;],sum(s[&#x27;travelMinutes&#x27;]+s[&#x27;visitMinutes&#x27;] for s in p[&#x27;stops&#x27;]))
+                    self.assertEqual(len(p[&#x27;stops&#x27;]),len({s[&#x27;siteId&#x27;] for s in p[&#x27;stops&#x27;]}))
+                    self.assertTrue(all(engine.BY_ID[s[&#x27;siteId&#x27;]][&#x27;city&#x27;]==city for s in p[&#x27;stops&#x27;]))
+    def test_transport_changes(self):
+        a=engine.plan({&#x27;mode&#x27;:&#x27;drive&#x27;});b=engine.plan({&#x27;mode&#x27;:&#x27;walk&#x27;})
+        self.assertNotEqual(a[&#x27;stops&#x27;],b[&#x27;stops&#x27;])
+    def test_candidate_subset(self):
+        p=engine.plan({&#x27;siteIds&#x27;:[&#x27;q01&#x27;,&#x27;q02&#x27;],&#x27;minutes&#x27;:240})
+        self.assertEqual({s[&#x27;siteId&#x27;] for s in p[&#x27;stops&#x27;]},{&#x27;q01&#x27;,&#x27;q02&#x27;})
+    def test_determinism(self):self.assertEqual(engine.plan({}),engine.plan({}))
+    def test_invalid_inputs(self):
+        for p in [None,[],{&#x27;minutes&#x27;:29},{&#x27;minutes&#x27;:601},{&#x27;startTime&#x27;:&#x27;24:00&#x27;},{&#x27;startTime&#x27;:&#x27;23:30&#x27;}, {&#x27;mode&#x27;:&#x27;fly&#x27;}, {&#x27;city&#x27;:&#x27;平潭&#x27;}, {&#x27;category&#x27;:&#x27;bad&#x27;},{&#x27;siteIds&#x27;:[&#x27;q01&#x27;,&#x27;q01&#x27;]},{&#x27;siteIds&#x27;:[&#x27;f01&#x27;]},{&#x27;siteIds&#x27;:[&#x27;t01&#x27;]},{&#x27;maxStops&#x27;:5}]:
+            with self.subTest(p=p),self.assertRaises(ValueError):engine.plan(p)
+    def test_infeasible(self):
+        with self.assertRaises(ValueError):engine.plan({&#x27;minutes&#x27;:30,&#x27;mode&#x27;:&#x27;walk&#x27;})
+    def test_custom_duration(self):self.assertEqual(engine.plan({&#x27;minutes&#x27;:275,&#x27;maxStops&#x27;:1})[&#x27;params&#x27;][&#x27;minutes&#x27;],275)
+
+class APITests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp=tempfile.TemporaryDirectory();cls.db=Path(cls.tmp.name)/&#x27;test.sqlite3&#x27;
+        cls.start()
+    @classmethod
+    def start(cls):
+        with socket.socket() as s:s.bind((&#x27;127.0.0.1&#x27;,0));cls.port=s.getsockn</pre></article></main></html>

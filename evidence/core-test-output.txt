@@ -1,0 +1,29 @@
+test_auth (__main__.APITests.test_auth) ... ok
+test_bad_json (__main__.APITests.test_bad_json) ... ok
+test_bad_query_type (__main__.APITests.test_bad_query_type) ... ok
+test_crud_restart (__main__.APITests.test_crud_restart) ... ok
+test_forged_plan_recomputed (__main__.APITests.test_forged_plan_recomputed) ... ok
+test_health (__main__.APITests.test_health) ... ok
+test_private_files (__main__.APITests.test_private_files) ... ok
+test_script_title_is_data (__main__.APITests.test_script_title_is_data) ... ok
+test_alias (__main__.EvidenceTests.test_alias) ... ok
+test_bad_question (__main__.EvidenceTests.test_bad_question) ... ok
+test_citation_alignment (__main__.EvidenceTests.test_citation_alignment) ... ok
+test_correct_origin (__main__.EvidenceTests.test_correct_origin) ... ok
+test_dynamic_boundary (__main__.EvidenceTests.test_dynamic_boundary) ... ok
+test_entity_isolation (__main__.EvidenceTests.test_entity_isolation) ... ok
+test_integrity (__main__.EvidenceTests.test_integrity) ... ok
+test_out_of_scope (__main__.EvidenceTests.test_out_of_scope) ... ok
+test_unverified_refusal (__main__.EvidenceTests.test_unverified_refusal) ... ok
+test_budget_and_unique (__main__.PlannerTests.test_budget_and_unique) ... ok
+test_candidate_subset (__main__.PlannerTests.test_candidate_subset) ... ok
+test_custom_duration (__main__.PlannerTests.test_custom_duration) ... ok
+test_determinism (__main__.PlannerTests.test_determinism) ... ok
+test_infeasible (__main__.PlannerTests.test_infeasible) ... ok
+test_invalid_inputs (__main__.PlannerTests.test_invalid_inputs) ... ok
+test_transport_changes (__main__.PlannerTests.test_transport_changes) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 1.244s
+
+OK

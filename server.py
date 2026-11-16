@@ -60,7 +60,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if p=='/api/health':return self.json({'ok':True,'version':VERSION,'dataHash':DATA_HASH,'sourceCount':len(CATALOG['sources']),'modelConfigured':bool(os.environ.get('AI_API_KEY') and os.environ.get('AI_API_BASE')),'csrfToken':TOKEN})
         if p=='/api/catalog':return self.json(CATALOG)
         if p=='/api/plans':
-            with db() as c:rows=c.execute('SELECT * FROM plans ORDER BY created DESC').fetchall()
+            with db() as c:rows=c.execute('SELECT * FROM plans ORDER BY created DESC, rowid DESC').fetchall()
             return self.json([{'id':r['id'],'title':r['title'],'created':r['created'],'plan':json.loads(r['payload'])} for r in rows])
         # Explicit allowlist: never serve .env, Git objects, sqlite databases or transcripts.
         if p=='/':self.path='/index.html'
