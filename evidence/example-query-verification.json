@@ -1,0 +1,14 @@
+{
+  "passed": 8,
+  "checks": [
+    "Empty input + 查资料 returns the example answer with evidence",
+    "Welcome example responds without typing",
+    "Typed question takes priority over the default example",
+    "In-flight examples and repeated submit cannot send duplicate requests",
+    "Example buttons recover after the answer",
+    "Network failure restores the buttons and shows a retry message",
+    "Mobile layout has no horizontal overflow",
+    "No uncaught JavaScript errors"
+  ],
+  "errors": []
+}

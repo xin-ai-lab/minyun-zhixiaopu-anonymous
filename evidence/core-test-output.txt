@@ -12,6 +12,7 @@ test_citation_alignment (__main__.EvidenceTests.test_citation_alignment) ... ok
 test_correct_origin (__main__.EvidenceTests.test_correct_origin) ... ok
 test_dynamic_boundary (__main__.EvidenceTests.test_dynamic_boundary) ... ok
 test_entity_isolation (__main__.EvidenceTests.test_entity_isolation) ... ok
+test_exploratory_category_intent (__main__.EvidenceTests.test_exploratory_category_intent) ... ok
 test_integrity (__main__.EvidenceTests.test_integrity) ... ok
 test_out_of_scope (__main__.EvidenceTests.test_out_of_scope) ... ok
 test_unverified_refusal (__main__.EvidenceTests.test_unverified_refusal) ... ok
@@ -24,6 +25,6 @@ test_invalid_inputs (__main__.PlannerTests.test_invalid_inputs) ... ok
 test_transport_changes (__main__.PlannerTests.test_transport_changes) ... ok
 
 ----------------------------------------------------------------------
-Ran 24 tests in 1.244s
+Ran 25 tests in 1.204s
 
 OK

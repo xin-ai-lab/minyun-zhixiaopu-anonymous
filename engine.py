@@ -21,6 +21,13 @@ ENTITY_ALIASES = {
  'n01':'岩茶,大红袍','n02':'建盏,建窑','n03':'四平戏','n04':'浦城剪纸','l01':'闽西汉剧','l02':'客家土楼',
  'l03':'四堡,雕版印刷','l04':'客家元宵','d01':'小说歌','d02':'福鼎白茶','d03':'霍童,线狮','d04':'柘荣剪纸',
  't01':'平潭贝雕','t02':'藤牌操','t03':'词明戏'}
+CATEGORY_INTENTS = (
+ (('戏曲','戏剧'), {'opera'}),
+ (('表演','演艺','音乐','乐器'), {'opera','music'}),
+ (('手工','技艺','工艺'), {'craft'}),
+ (('民俗','习俗'), {'folk'}),
+ (('美食','小吃','饮食'), {'food'}),
+)
 
 def normalize(text):
     return re.sub(r'[^\w\u4e00-\u9fff]', '', str(text).lower())
@@ -53,6 +60,11 @@ def search(query, city='全部', category='all', limit=6):
     if not qt: qt=set(tokens(raw))
     named=[s['id'] for s in SITES if normalize(s['name']) in raw or normalize(s['officialName']) in raw
            or any(t in raw for t in ENTITY_ALIASES.get(s['id'],'').split(',') if t)]
+    # Category intent narrows exploratory questions; an explicitly named project still wins.
+    inferred=set()
+    if not named and category=='all':
+        for words,categories in CATEGORY_INTENTS:
+            if any(word in raw for word in words):inferred.update(categories)
     detected=[c for c in CATALOG['cities'][1:] if c in raw]
     scored=[]
     for d in DOCS:
@@ -60,6 +72,7 @@ def search(query, city='全部', category='all', limit=6):
         if named and s['id'] not in named:continue
         if city!='全部' and s['city']!=city:continue
         if category!='all' and s['cat']!=category:continue
+        if inferred and s['cat'] not in inferred:continue
         if detected and not named and s['city'] not in detected:continue
         length=sum(d['tf'].values());score=0;matched=[]
         for t in qt:

@@ -22,6 +22,14 @@ class EvidenceTests(unittest.TestCase):
         for q in ['火星上有多少只企鹅？','今天上证指数多少？','如何安装显卡驱动？','明天北京天气？']:
             with self.subTest(q=q):self.assertEqual(engine.answer(q)['citations'],[])
     def test_dynamic_boundary(self):self.assertTrue(engine.answer('泉州南音今天几点演出？')['needsVerification'])
+    def test_exploratory_category_intent(self):
+        for query,allowed in [('泉州有哪些传统表演？',{'opera','music'}),('福州有哪些手工技艺？',{'craft'}),('厦门有哪些民俗？',{'folk'})]:
+            with self.subTest(query=query):
+                hits=engine.search(query)
+                self.assertTrue(hits)
+                self.assertTrue(all(h['category'] in allowed for h in hits))
+        # A project may involve performance while officially belonging to another category.
+        self.assertEqual(engine.search('妈祖信俗有哪些表演仪式？')[0]['siteId'],'p01')
     def test_bad_question(self):
         for q in ['',None,[],123,'a'*501]:
             with self.subTest(q=repr(q)[:30]),self.assertRaises(ValueError):engine.answer(q)

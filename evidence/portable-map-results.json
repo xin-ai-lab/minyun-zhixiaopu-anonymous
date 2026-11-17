@@ -1,0 +1,56 @@
+{
+  "checks": [
+    {
+      "name": "CMD launches embedded Python from Chinese and space path",
+      "pass": true
+    },
+    {
+      "name": "occupied default port selects a different port",
+      "pass": true
+    },
+    {
+      "name": "portable health reports ready",
+      "pass": true
+    },
+    {
+      "name": "discovery map has 48 photograph markers",
+      "pass": true
+    },
+    {
+      "name": "map marker photos match catalog",
+      "pass": true
+    },
+    {
+      "name": "photo files preserved byte for byte",
+      "pass": true
+    },
+    {
+      "name": "photograph popup opens matching detail",
+      "pass": true
+    },
+    {
+      "name": "route contains photograph markers for each stop",
+      "pass": true
+    },
+    {
+      "name": "route markers numbered in order",
+      "pass": true
+    },
+    {
+      "name": "route photograph opens details",
+      "pass": true
+    },
+    {
+      "name": "portable empty-input query returns evidence",
+      "pass": true
+    },
+    {
+      "name": "portable browser has no uncaught errors",
+      "pass": true
+    }
+  ],
+  "passed": 12,
+  "total": 12,
+  "environment": "Windows x64 / embedded Python 3.13.7 / installed Chrome",
+  "source": "Fresh ZIP extraction; actual CMD launcher; isolated local database"
+}

@@ -34,6 +34,11 @@
     L.geoJSON(state.boundary,{style:{color:'#a9bba0',weight:1,fillColor:'#d6e0cd',fillOpacity:.8}}).addTo(map);
     const bounds=L.geoJSON(state.boundary).getBounds();map.fitBounds(bounds,{padding:[20,20],animate:false});return map;
   }
+  function photoIcon(s, number) {
+    return L.divIcon({className:'photo-map-icon',
+      html:`<span class="marker-photo"><img src="${esc(s.image)}" alt="${esc(s.name)}摄影图片" draggable="false"></span>${number?`<span class="marker-stop">${number}</span>`:''}`,
+      iconSize:[44,44],iconAnchor:[22,22],popupAnchor:[0,-24],tooltipAnchor:[0,-24]});
+  }
   function renderExplore() {
     const q=$('search').value.trim().toLowerCase(),city=$('cityFilter').value,cat=$('categoryFilter').value;
     const list=state.catalog.sites.filter(s=>(city==='全部'||s.city===city)&&(cat==='all'||s.cat===cat)&&(!q||[s.name,s.officialName,s.city,...s.tags].join(' ').toLowerCase().includes(q)));
@@ -43,9 +48,10 @@
     if(state.markers)state.map.removeLayer(state.markers);
     state.markers=L.layerGroup().addTo(state.map);
     list.forEach(s=>{
-      const marker=L.circleMarker([s.lat,s.lng],{radius:6,color:'#fff',weight:2,fillColor:s.verified?'#ad6447':'#9da693',fillOpacity:.95}).addTo(state.markers);
+      const marker=L.marker([s.lat,s.lng],{icon:photoIcon(s),title:s.name,alt:s.name+'摄影标记',riseOnHover:true}).addTo(state.markers);
       marker.bindTooltip(s.name,{direction:'top'});
       const wrap=document.createElement('div');wrap.className='map-popup';
+      const photo=document.createElement('img');photo.className='map-popup-photo';photo.src=s.image;photo.alt=s.name+'主题照片';wrap.appendChild(photo);
       const title=document.createElement('strong');title.textContent=s.name;wrap.appendChild(title);
       const meta=document.createElement('p');meta.textContent=s.city+' · '+(s.verified?'名录可查':'待核验');wrap.appendChild(meta);
       const btn=document.createElement('button');btn.textContent='查看资料 →';btn.addEventListener('click',()=>openDetail(s.id));wrap.appendChild(btn);
@@ -82,14 +88,15 @@
     if($('detailDialog').open){$('detailDialog').close();openDetail(id);}
   }
   function introChat() {
-    $('messages').innerHTML='<div class="message bot"><div class="msg-label">阿闽 · 原文检索</div><div class="msg-body">你好，我是阿闽。\n\n我会从已核验的非遗名录中找资料，把答案和出处一起交给你。\n\n你可以问：“南音使用哪些乐器？”或“歌仔戏起源在哪里？”</div></div>';
+    $('messages').innerHTML='<div class="message bot"><div class="msg-label">阿闽 · 原文检索</div><div class="msg-body">你好，我是阿闽。\n\n我会从已核验的非遗名录中找资料，把答案和出处一起交给你。<div class="example-questions"><span>点一个问题，马上查资料：</span><button type="button" data-ask="南音使用哪些乐器？">南音使用哪些乐器？ ↗</button><button type="button" data-ask="歌仔戏起源在哪里？">歌仔戏起源在哪里？ ↗</button></div></div></div>';
     $('evidenceList').innerHTML='<div class="empty-note"><span>“</span><p>不把“像真的”<br>当成“有依据”。</p></div>';
   }
   async function ask(query) {
     if(state.asking)return;
-    const q=(query||$('question').value).trim();if(!q){toast('先写下你想了解的问题');return;}
+    const q=(query||$('question').value).trim()||$('question').dataset.example;
     if(q.length>500){toast('问题请控制在 500 字以内');return;}
-    showPage('ask');state.asking=true;$('askSubmit').disabled=true;$('clearChat').disabled=true;$('question').value='';
+    showPage('ask');state.asking=true;$('askSubmit').disabled=true;$('askSubmit').textContent='正在查找…';$('clearChat').disabled=true;$('question').value='';
+    document.querySelectorAll('[data-ask]').forEach(b=>b.disabled=true);$('messages').setAttribute('aria-busy','true');
     const user=document.createElement('div');user.className='message user';user.textContent=q;$('messages').appendChild(user);
     const pending=document.createElement('div');pending.className='pending';pending.textContent='正在检索原文与引用依据…';$('messages').appendChild(pending);$('messages').scrollTop=$('messages').scrollHeight;
     const start=performance.now();
@@ -101,7 +108,7 @@
       $('evidenceList').innerHTML=result.citations.map(c=>`<article class="evidence-card"><span class="source-label">REFERENCE 0${c.index}</span><h3>[${c.index}] ${esc(c.officialName)}</h3><p>${esc(c.publisher)}<br>${esc(c.region)} · ${esc(c.year)}<br>核验日期 ${c.checkedAt}</p><button class="text-button" data-source="${c.id}">读本地原文</button><a href="${c.url}" target="_blank" rel="noopener noreferrer">来源网页 ↗</a></article>`).join('')+`<div class="retrieval-note">${result.hits.length?'检索到 '+result.hits.length+' 个项目 · '+Math.round(performance.now()-start)+' ms':'没有足够依据 · 未生成事实答案'}${result.hits.length?'<div class="method-chips">'+result.hits[0].matched.map(x=>'<span>'+esc(x)+'</span>').join('')+'</div>':''}</div>`;
     } catch(e) {
       const msg=document.createElement('div');msg.className='message bot';msg.textContent='这次查询没有完成：'+e.message+'。你可以重试，已保存的行程不受影响。';$('messages').appendChild(msg);
-    } finally { pending.remove();state.asking=false;$('askSubmit').disabled=false;$('clearChat').disabled=false;$('messages').scrollTop=$('messages').scrollHeight; }
+    } finally { pending.remove();state.asking=false;$('askSubmit').disabled=false;$('askSubmit').textContent='查资料 ↗';$('clearChat').disabled=false;document.querySelectorAll('[data-ask]').forEach(b=>b.disabled=false);$('messages').setAttribute('aria-busy','false');$('messages').scrollTop=$('messages').scrollHeight; }
   }
   function planParams() { return {city:$('planCity').value,mode:$('travelMode').value,minutes:Number($('duration').value),startTime:$('startTime').value,category:$('planCategory').value,maxStops:Number($('maxStops').value),siteIds:[...state.selected]}; }
   async function generatePlan(e) {
@@ -122,7 +129,11 @@
       state.routeLayer=L.layerGroup().addTo(state.routeMap);
       const pts=p.stops.map(t=>{const s=site(t.siteId);return [s.lat,s.lng];});
       L.polyline(pts,{color:'#ae6547',weight:3,dashArray:'5 8'}).addTo(state.routeLayer);
-      pts.forEach((pt,i)=>L.marker(pt,{icon:L.divIcon({className:'',html:'<span class="map-number">'+(i+1)+'</span>',iconSize:[26,26]})}).bindTooltip(p.stops[i].name).addTo(state.routeLayer));
+      pts.forEach((pt,i)=>{
+        const s=site(p.stops[i].siteId);
+        L.marker(pt,{icon:photoIcon(s,i+1),title:s.name,alt:'第'+(i+1)+'站 '+s.name,riseOnHover:true})
+          .bindTooltip('第'+(i+1)+'站 · '+s.name).on('click',()=>openDetail(s.id)).addTo(state.routeLayer);
+      });
       state.routeMap.fitBounds(L.latLngBounds(pts),{padding:[35,35],maxZoom:13,animate:false});
     });
   }

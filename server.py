@@ -105,10 +105,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         except Exception:return self.json({'error':'本地服务暂时无法完成请求，请重试。'},500)
     do_POST=mutate;do_DELETE=mutate;do_PATCH=mutate
 
+class LocalHTTPServer(http.server.ThreadingHTTPServer):
+    # Windows SO_REUSEADDR can let two live servers share a port. Prefer an
+    # exclusive listener there so a second launch reliably tries the next port.
+    allow_reuse_address = os.name != 'nt'
+
+    def server_bind(self):
+        if os.name == 'nt':
+            import socket
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--port',type=int,default=8765);ap.add_argument('--no-browser',action='store_true');args=ap.parse_args()
     for port in range(args.port,args.port+20):
-        try:server=http.server.ThreadingHTTPServer(('127.0.0.1',port),Handler);break
+        try:server=LocalHTTPServer(('127.0.0.1',port),Handler);break
         except OSError:continue
     else:raise SystemExit('No available local port. Close an old app window and retry.')
     url=f'http://127.0.0.1:{port}'
