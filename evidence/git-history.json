@@ -1,86 +1,92 @@
 [
   {
+    "commit": "8a68713fd8e09cc6fe95414820e3aa7cc56e44d6",
+    "message": "fix: 稳定行程排序并补齐复现文档、授权说明与真实协作证据",
+    "time": 1794845745,
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
+  },
+  {
     "commit": "97440082359209b7a46c10955b8c4439cf804076",
     "message": "fix: 隔离实体证据、支持别名并通过持久化与浏览器回归检查",
     "time": 1794842696,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "0a095dcefe636d31d42721cea551af14fad6cfaf",
     "message": "feat: 核验45条官方名录并实现本地证据问答与约束行程初版",
     "time": 1794842267,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "33980ccd644f9924a713ebcfc3758ada30734d12",
     "message": "feat(gallery): 内置 48 张非遗实景图库，修复批量上传配额误诊\n\n- 新增 data/gallery.js 内置实景图库索引（48 项），配套 assets/sites/ 48 张\n  图片随包分发，离线可用，最长边 800px / JPEG 压缩后总计约 3.1MB\n- storage.js 由 LocalStorage 迁移至 IndexedDB（myx_uploads_db/photos），\n  突破 LocalStorage 约 5MB 的单源总配额；批量上传 48 张由\"存储失败\"\n  变为全部成功，并支持旧键 fj_imgs_v4 一次性迁移与 IndexedDB 不可用降级\n- 建立三级取图优先级：用户上传图 > 内置实景图库 > 在线开放图库兜底\n- ui.js 为用户上传照片增加「我的照片」角标，map.js 为对应标记加金色描边\n- sites.js 知识库由 46 项扩充至 48 项（新增漳州八宝印泥、莆田木雕）\n- scripts/generate-env.js 在缺少 .env 时回退读取 .env.example 生成构建产物，\n  消除 src/js/env.generated.js 的 404\n- 同步更新 README / CHANGELOG / 部署指南 / prompts 历史快照（新增第 07 篇）",
     "time": 1793387429,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "ad2bf63f1d123c0b3b623eb8ee5a14d47ea9fb5a",
     "message": "docs: 补充在线演示地址（评审期公网可访问）",
     "time": 1793359200,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "5acca4d084aff146852b9810037bece38f32a55c",
     "message": "docs: 补充 README、部署指南与 Vibe Coding Prompt 历史快照\n\n- README：项目介绍/技术架构/安装运行/环境配置/团队信息\n- docs/部署指南：本地运行、环境变量、静态托管、FAQ\n- prompts/：6 篇关键 Prompt 快照，记录 AI 协同开发过程\n- scripts/generate-env.js：零依赖环境变量注入脚本",
     "time": 1793347800,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "4a1580d9f8015b6056240b7943c2d01237272610",
     "message": "perf(vendor): Leaflet 本地化，摆脱 CDN 依赖支持离线运行\n\n- 将 Leaflet 1.9.4 及图标资源本地化至 src/vendor/leaflet/\n- 消除公共 CDN 抖动导致的可用性风险，支持完全离线运行\n- 入口改为引用本地资源",
     "time": 1793329500,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "0ecdc82d3644e905991bd9cb182cfc246745153f",
     "message": "feat(upload): 图片上传、Canvas 压缩与本地持久化\n\n- Canvas 等比压缩（最长边 800px + JPEG 0.85）解决配额溢出\n- 用户图与在线图分离缓存，LocalStorage 读写容错\n- 开放图库（CC 授权）检索与限流拉取",
     "time": 1793242200,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "6cc976011479d6e6e49b405822e95543c03ddb07",
     "message": "feat(cross): 新增闽台两岸非遗同源对照模块\n\n- 6 组同源非遗（歌仔戏/南音/博饼/妈祖/布袋戏/漆线雕）\n- 左右并列对照 + 同源共脉结论\n- 明确台湾为中国不可分割的一部分",
     "time": 1793189700,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "864387a23185e13c2932c616325bc8a379d118cd",
     "message": "feat(graph): 自研 SVG 环形放射布局知识图谱\n\n- 放弃体积庞大的第三方图库，手写约 40 行布局算法\n- 支持全局视图（类别->项目）与单项目关系网两种模式\n- 附带非遗详情弹窗样式",
     "time": 1793169000,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "1614e9b53cd2751242bd07c0af1717491adc76f9",
     "message": "feat(planner): 贪心算法实现非遗主题半日游路线规划\n\n- 贪心最近邻排序，O(n^2) 毫秒级求近最优游览顺序\n- 时间轴排程：9:00 出发，游玩 90 分钟 + 车程 30 分钟缓冲\n- 纯函数设计，与 UI 解耦，便于单元测试",
     "time": 1793112480,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "1060d5461036859bda2df22f16cf61b238e919da",
     "message": "feat(rag): 实现 RAG 检索增强问答与意图识别引擎\n\n- 意图识别：图谱/两岸/地市清单/全省概览/实体检索/兜底\n- 三路加权召回（名称+标签+简介），防幻觉：只检索不编造\n- 对话气泡、非遗信息卡片、检索中动画与引导话术",
     "time": 1793089320,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "0d93263bec9ffe70057fe8139f23e347e881f816",
     "message": "feat(map): 集成 Leaflet 地图与非遗标记可视化\n\n- 高德路网底图 + 46 个自定义标记\n- 支持地市 + 类别双重条件实时筛选\n- 抽离设计令牌（CSS 变量），统一闽南红描金配色",
     "time": 1793070300,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "c09e1f359825cf308020ec95ba0e206e7ab725ae",
     "message": "feat(data): 结构化收录福建 46 项代表性非遗知识库\n\n- 覆盖 9 设区市 + 平潭综合实验区，含人类非遗/国家级/省级\n- 采用数组元组压缩体积，统一 map 映射为语义化对象\n- 新增全局配置中心 config.js，收敛地图/算法/存储等超参",
     "time": 1793022000,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   },
   {
     "commit": "fe582072de22da9ee250bcc403bb06f5ea7c1de0",
     "message": "chore: 初始化项目仓库与工程规范\n\n- 建立目录骨架、EditorConfig、ESLint、gitignore 等工程规范\n- 添加 MIT 协议、环境变量模板 .env.example\n- 创建应用入口 index.html（Vibe Coding 原型阶段）",
     "time": 1792980720,
-    "author": "[身份信息已隐去] <anonymous@users.noreply.invalid>"
+    "author": "Project Contributors <anonymous@users.noreply.invalid>"
   }
 ]
